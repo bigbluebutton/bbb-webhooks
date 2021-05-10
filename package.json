@@ -1,11 +1,10 @@
 {
-  "name": "bbb-callbacks",
-  "version": "2.2.0",
-  "description": "A module for BigBlueButton for API callbacks",
+  "name": "bbb-webhooks",
+  "version": "2.3.0",
+  "description": "A BigBlueButton mudule for events WebHooks",
   "keywords": [
     "bigbluebutton",
-    "Web API",
-    "callbacks"
+    "webhooks"
   ],
   "dependencies": {
     "async": "2.6.1",
