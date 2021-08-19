@@ -382,6 +382,19 @@ module.exports = class MessageMapping {
     Logger.info("[MessageMapping] Mapped message:", this.mappedMessage);
   }
 
+  handleRecordingStatusChanged(message) {
+    const event = "meeting-recording";
+    const { core } = message;
+    if (core && core.body) {
+      const { recording } = core.body;
+      if (typeof recording === 'boolean') {
+        if (recording) return `${event}-started`;
+        return `${event}-stopped`;
+      }
+    }
+    return `${event}-unhandled`;
+  }
+
   handleUserListeningOnly(message) {
     const event = "user-audio-listen-only";
     if (message.payload.listen_only) return `${event}-enabled`;
@@ -407,7 +420,7 @@ module.exports = class MessageMapping {
     const mappedMsg = (() => { switch (name) {
       case "MeetingCreatedEvtMsg": return "meeting-created";
       case "MeetingDestroyedEvtMsg": return "meeting-ended";
-      case "RecordingStatusChangedEvtMsg": return "meeting-recording-changed";
+      case "RecordingStatusChangedEvtMsg": return this.handleRecordingStatusChanged(message);
       case "ScreenshareRtmpBroadcastStartedEvtMsg": return "meeting-screenshare-started";
       case "ScreenshareRtmpBroadcastStoppedEvtMsg": return "meeting-screenshare-stopped";
       case "SetCurrentPresentationEvtMsg": return "meeting-presentation-changed";
