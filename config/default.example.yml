@@ -20,7 +20,6 @@ hooks:
     - from-akka-apps-pres-redis-channel
     - bigbluebutton:from-bbb-apps:meeting
     - bigbluebutton:from-bbb-apps:users
-    - bigbluebutton:from-bbb-apps:chat
     - bigbluebutton:from-rap
   # IP where permanent hook will post data (more than 1 URL means more than 1 permanent hook)
   permanentURLs: []
