@@ -28,6 +28,7 @@ module.exports = class MessageMapping {
     this.chatEvents = [
       "SendPublicMessageEvtMsg",
       "SendPrivateMessageEvtMsg",
+      "GroupChatMessageBroadcastEvtMsg",
     ];
     this.rapEvents = [
       "PublishedRecordingSysMsg",
@@ -67,6 +68,9 @@ module.exports = class MessageMapping {
       "unpublished",
       "deleted",
     ];
+    this.padEvents = [
+      "PadUpdateSysMsg"
+    ];
   }
 
   // Map internal message based on it's type
@@ -85,6 +89,8 @@ module.exports = class MessageMapping {
       this.compUserTemplate(messageObj);
     } else if (this.mappedEvent(messageObj,this.compRapEvents)) {
       this.compRapTemplate(messageObj);
+    } else if (this.mappedEvent(messageObj,this.padEvents)) {
+      this.padTemplate(messageObj);
     }
   }
 
@@ -134,6 +140,15 @@ module.exports = class MessageMapping {
           "dial-number": props.voiceProp.dialNumber,
           "max-users": props.usersProp.maxUsers,
           "metadata": props.metadataProp.metadata
+        }
+      };
+    }
+    if (messageObj.envelope.name === "SetCurrentPresentationEvtMsg") {
+      this.mappedObject.data.attributes = {
+        "meeting":{
+          "internal-meeting-id": meetingId,
+          "external-meeting-id": IDMapping.getExternalMeetingID(meetingId),
+          "presentation-id": messageObj.core.body.presentationId
         }
       };
     }
@@ -282,7 +297,7 @@ module.exports = class MessageMapping {
 
   // Map internal to external message for chat information
   chatTemplate(messageObj) {
-    const message = messageObj.core.body.message;
+    const message = messageObj.core.body.message || messageObj.core.body.msg;
     this.mappedObject.data = {
       "type": "event",
       "id": this.mapInternalMessage(messageObj),
@@ -294,12 +309,13 @@ module.exports = class MessageMapping {
         "chat-message":{
           "message": message.message,
           "sender":{
-            "internal-user-id": message.fromUserId,
-            "external-user-id": message.fromUsername,
+            "internal-user-id": message.fromUserId || message.sender.id,
+            "external-user-id": message.fromUsername || message.sender.name,
             "timezone-offset": message.fromTimezoneOffset,
-            "time": message.fromTime
+            "time": message.fromTime || message.timestamp
           }
-        }
+        },
+        "chat-id": messageObj.core.body.chatId
       },
       "event":{
         "ts": Date.now()
@@ -408,6 +424,27 @@ module.exports = class MessageMapping {
       return `${event}-unassigned`;
     }
   }
+  
+  padTemplate(messageObj) {
+    const body = messageObj.core.body;
+    this.mappedObject.data = {
+      "type": "event",
+      "id": this.mapInternalMessage(messageObj),
+      "attributes":{
+        "meeting":{
+          "internal-meeting-id-hash": body.pad.id
+        },
+        "pad":{
+          "text": body.pad.atext.text
+        }
+      },
+      "event":{
+        "ts": body.timestamp
+      }
+    };
+    this.mappedMessage = JSON.stringify(this.mappedObject);
+    Logger.info("[MessageMapping] Mapped message:", this.mappedMessage);
+  }
 
   mapInternalMessage(message) {
     let name;
@@ -435,6 +472,7 @@ module.exports = class MessageMapping {
       case "UserEmojiChangedEvtMsg": return "user-emoji-changed";
       case "SendPublicMessageEvtMsg": return "chat-public-message-sent";
       case "SendPrivateMessageEvtMsg": return "chat-private-message-sent";
+      case "GroupChatMessageBroadcastEvtMsg": return "chat-group-message-sent";
       case "archive_started": return "rap-archive-started";
       case "archive_ended": return "rap-archive-ended";
       case "sanity_started": return "rap-sanity-started";
@@ -465,6 +503,7 @@ module.exports = class MessageMapping {
       case "user_shared_webcam_message": return "user-cam-broadcast-start";
       case "video_stream_unpublished": return "user-cam-broadcast-end";
       case "user_status_changed_message": return this.handleUserStatusChanged(message);
+      case "PadUpdateSysMsg": return "pad-update";
     } })();
     return mappedMsg;
   }
