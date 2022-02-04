@@ -69,7 +69,7 @@ module.exports = class MessageMapping {
       "deleted",
     ];
     this.padEvents = [
-      "PadUpdateSysMsg"
+      "PadContentEvtMsg"
     ];
   }
 
@@ -424,22 +424,31 @@ module.exports = class MessageMapping {
       return `${event}-unassigned`;
     }
   }
-  
+
   padTemplate(messageObj) {
-    const body = messageObj.core.body;
+    const {
+      body,
+      header,
+    } = messageObj.core;
     this.mappedObject.data = {
       "type": "event",
       "id": this.mapInternalMessage(messageObj),
       "attributes":{
         "meeting":{
-          "internal-meeting-id-hash": body.pad.id
+          "internal-meeting-id": header.meetingId,
+          "external-meeting-id": IDMapping.getExternalMeetingID(header.meetingId)
         },
         "pad":{
-          "text": body.pad.atext.text
+          "id": body.padId,
+          "external-pad-id": body.externalId,
+          "rev": body.rev,
+          "start": body.start,
+          "end": body.end,
+          "text": body.text
         }
       },
       "event":{
-        "ts": body.timestamp
+        "ts": Date.now()
       }
     };
     this.mappedMessage = JSON.stringify(this.mappedObject);
@@ -503,7 +512,7 @@ module.exports = class MessageMapping {
       case "user_shared_webcam_message": return "user-cam-broadcast-start";
       case "video_stream_unpublished": return "user-cam-broadcast-end";
       case "user_status_changed_message": return this.handleUserStatusChanged(message);
-      case "PadUpdateSysMsg": return "pad-update";
+      case "PadContentEvtMsg": return "pad-content";
     } })();
     return mappedMsg;
   }
