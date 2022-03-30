@@ -24,7 +24,7 @@
     "node": "^12.22"
   },
   "devDependencies": {
-    "mocha": "^8.4.0",
+    "mocha": "^9.2.2",
     "supertest": "^3.4.2"
   },
   "scripts": {
