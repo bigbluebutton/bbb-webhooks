@@ -58,7 +58,7 @@ hooks:
 # Mappings of internal to external meeting IDs
 mappings:
   cleanupInterval: 10000 # 10 secs, in ms
-  timeout: 86400000 # 24 hours, in ms
+  timeout: 604800000 # 1 week, in ms
 
 # Redis
 redis:
