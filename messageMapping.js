@@ -134,6 +134,7 @@ module.exports = class MessageMapping {
           "external-meeting-id": props.meetingProp.extId,
           "name": props.meetingProp.name,
           "is-breakout": props.meetingProp.isBreakout,
+          "parent-id": props.breakoutProps.parentId,
           "duration": props.durationProps.duration,
           "create-time": props.durationProps.createdTime,
           "create-date": props.durationProps.createdDate,
@@ -219,6 +220,7 @@ module.exports = class MessageMapping {
           "name": msgBody.name,
           "role": msgBody.role,
           "presenter": msgBody.presenter,
+          "userdata": msgBody.userdata,
           "stream": msgBody.stream
         }
       },
@@ -232,6 +234,10 @@ module.exports = class MessageMapping {
     } else if (this.mappedObject.data["id"] === "user-audio-voice-disabled") {
       this.mappedObject.data["attributes"]["user"]["listening-only"] = false;
       this.mappedObject.data["attributes"]["user"]["sharing-mic"] = false;
+    } else if (this.mappedObject.data["id"] === "user-emoji-changed") {
+      if (msgBody.emoji !== "none") {
+        this.mappedObject.data["attributes"]["user"]["emoji"] = msgBody.emoji;
+      }
     }
     this.mappedMessage = JSON.stringify(this.mappedObject);
     Logger.info(`[MessageMapping] Mapped message: ${this.mappedMessage}`);
@@ -314,11 +320,11 @@ module.exports = class MessageMapping {
           "external-meeting-id": IDMapping.getExternalMeetingID(messageObj.envelope.routing.meetingId)
         },
         "chat-message":{
+          "id": body.msg.id,
           "message": body.msg.message,
           "sender":{
             "internal-user-id": body.msg.sender.id,
-            "external-user-id": body.msg.sender.name,
-            "timezone-offset": body.msg.fromTimezoneOffset,
+            "name": body.msg.sender.name,
             "time": body.msg.timestamp
           }
         },
@@ -378,6 +384,11 @@ module.exports = class MessageMapping {
       this.mappedObject.data.attributes["step-time"] = data.step_time;
     }
 
+    if (this.mappedObject.data.id === "rap-archive-ended") {
+      this.mappedObject.data.attributes["recorded"] = data.recorded || false;
+      this.mappedObject.data.attributes["duration"] = data.duration || 0;
+    }
+
     if (data.workflow) {
       this.mappedObject.data.attributes.workflow = data.workflow;
     }
@@ -386,10 +397,10 @@ module.exports = class MessageMapping {
       this.mappedObject.data.attributes.recording = {
         "name": data.metadata.meetingName,
         "is-breakout": data.metadata.isBreakout,
-        "start-time": data.startTime,
-        "end-time": data.endTime,
+        "start-time": data.start_time,
+        "end-time": data.end_time,
         "size": data.playback.size,
-        "raw-size": data.rawSize,
+        "raw-size": data.raw_size,
         "metadata": data.metadata,
         "playback": data.playback,
         "download": data.download
