@@ -4,12 +4,12 @@ ENV NODE_ENV production
 
 WORKDIR /app
 
-ADD package.json package-lock.json /app/
+COPY package.json package-lock.json /app/
 
 RUN npm install \
  && npm cache clear --force
 
-ADD . /app
+COPY . /app
 
 RUN cp config/default.example.yml config/default.yml
 

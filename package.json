@@ -21,7 +21,7 @@
     "winston": "^3.7.2"
   },
   "engines": {
-    "node": "^12.22"
+    "node": "^18"
   },
   "devDependencies": {
     "mocha": "^9.2.2",
