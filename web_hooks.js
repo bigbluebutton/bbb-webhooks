@@ -30,6 +30,15 @@ module.exports = class WebHooks {
 
       let raw;
       const processMessage = () => {
+        if (config.get("bbb.includeEvents").length > 0 && config.get("bbb.includeEvents").indexOf(message.data.id) == -1) {
+          Logger.info(`[WebHooks] message type ${message.data.id} ignored because it's not listed on includeEvents`);
+          return;
+        }
+        if (config.get("bbb.excludeEvents").length > 0 && config.get("bbb.excludeEvents").indexOf(message.data.id) != -1) {
+          Logger.info(`[WebHooks] message type ${message.data.id} ignored because it's listed on excludeEvents`);
+          return;
+        }
+
         Logger.info(`[WebHooks] processing message on [${channel}]: ${JSON.stringify(message)}`);
         this._processEvent(message, raw);
       };

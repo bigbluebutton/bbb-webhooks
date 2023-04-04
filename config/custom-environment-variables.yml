@@ -2,6 +2,12 @@ bbb:
   serverDomain: SERVER_DOMAIN
   sharedSecret: SHARED_SECRET
   auth2_0: BEARER_AUTH
+  includeEvents:
+    __name: INCLUDE_EVENTS
+    __format: json
+  excludeEvents:
+    __name: EXCLUDE_EVENTS
+    __format: json
 hooks:
   permanentURLs:
     __name: PERMANENT_HOOKS

@@ -5,6 +5,10 @@ bbb:
   # Whether to use Auth2.0 or not, Auth2.0 sends the sharedSecret whithin an Authorization header as a bearer
   auth2_0: false
   apiPath: /bigbluebutton/api
+  # Empty to include all events; if non-empty, only these events will be fired
+  includeEvents: []
+  # Empty to include all events; if non-empty, only these events won't be fired
+  excludeEvents: []
 
 # The port in which the API server will run.
 server:
