@@ -69,6 +69,10 @@ module.exports = class MessageMapping {
     this.padEvents = [
       "PadContentEvtMsg"
     ];
+    this.pollEvents = [
+      "PollStartedEvtMsg",
+      "UserRespondedToPollRespMsg",
+    ];
   }
 
   // Map internal message based on it's type
@@ -89,6 +93,8 @@ module.exports = class MessageMapping {
       this.compRapTemplate(messageObj);
     } else if (this.mappedEvent(messageObj,this.padEvents)) {
       this.padTemplate(messageObj);
+    } else if (this.mappedEvent(messageObj,this.pollEvents)) {
+      this.pollTemplate(messageObj);
     }
   }
 
@@ -450,6 +456,42 @@ module.exports = class MessageMapping {
     Logger.info(`[MessageMapping] Mapped message: ${this.mappedMessage}`);
   }
 
+  pollTemplate(messageObj) {
+    const msgBody = messageObj.core.body;
+    const msgHeader = messageObj.core.header;
+    const extId = UserMapping.getExternalUserID(msgHeader.userId) || msgBody.extId || "";
+    this.mappedObject.data = {
+      "type": "event",
+      "id": this.mapInternalMessage(messageObj),
+      "attributes":{
+        "meeting":{
+          "internal-meeting-id": messageObj.envelope.routing.meetingId,
+          "external-meeting-id": IDMapping.getExternalMeetingID(messageObj.envelope.routing.meetingId)
+        },
+        "user":{
+          "internal-user-id": msgHeader.userId,
+          "external-user-id": extId,
+        },
+        "poll":{
+          "id": msgBody.pollId
+        }
+      },
+      "event":{
+        "ts": Date.now()
+      }
+    };
+
+    if (this.mappedObject.data["id"] === "poll-started") {
+      this.mappedObject.data["attributes"]["poll"]["question"] = msgBody.question;
+      this.mappedObject.data["attributes"]["poll"]["answers"] = msgBody.poll.answers;
+    } else if (this.mappedObject.data["id"] === "poll-responded") {
+      this.mappedObject.data["attributes"]["poll"]["answerIds"] = msgBody.answerIds;
+    }
+
+    this.mappedMessage = JSON.stringify(this.mappedObject);
+    Logger.info(`[MessageMapping] Mapped message: ${this.mappedMessage}`);
+  }
+
   mapInternalMessage(message) {
     let name;
     if (message.envelope) {
@@ -506,6 +548,8 @@ module.exports = class MessageMapping {
       case "video_stream_unpublished": return "user-cam-broadcast-end";
       case "user_status_changed_message": return this.handleUserStatusChanged(message);
       case "PadContentEvtMsg": return "pad-content";
+      case "PollStartedEvtMsg": return "poll-started";
+      case "UserRespondedToPollRespMsg": return "poll-responded";
     } })();
     return mappedMsg;
   }
