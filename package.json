@@ -2,32 +2,38 @@
   "name": "bbb-webhooks",
   "version": "2.6.0",
   "description": "A BigBlueButton mudule for events WebHooks",
+  "type": "module",
+  "scripts": {
+    "start": "node app.js",
+    "test": "mocha",
+    "lint": "./node_modules/.bin/eslint ./",
+    "lint:file": "./node_modules/.bin/eslint"
+  },
   "keywords": [
     "bigbluebutton",
     "webhooks"
   ],
   "dependencies": {
-    "async": "^3.2.3",
     "body-parser": "^1.20.0",
+    "bullmq": "^4.11.4",
     "config": "^3.3.7",
-    "express": "^4.17.3",
+    "express": "^4.18.2",
     "js-yaml": "^4.1.0",
-    "lodash": "^4.17.21",
     "nock": "^13.2.4",
-    "redis": "^3.1.2",
+    "redis": "^4.6.8",
     "request": "^2.88.2",
     "sha1": "^1.1.1",
-    "sinon": "^12.0.1",
-    "winston": "^3.7.2"
+    "uuid": "^9.0.1",
+    "winston": "^3.10.0"
   },
   "engines": {
-    "node": "^12.22"
+    "node": ">=18"
   },
   "devDependencies": {
+    "eslint": "^8.49.0",
+    "eslint-plugin-import": "^2.28.1",
     "mocha": "^9.2.2",
+    "sinon": "^12.0.1",
     "supertest": "^3.4.2"
-  },
-  "scripts": {
-    "test": "mocha"
   }
 }

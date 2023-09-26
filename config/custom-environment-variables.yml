@@ -2,16 +2,36 @@ bbb:
   serverDomain: SERVER_DOMAIN
   sharedSecret: SHARED_SECRET
   auth2_0: BEARER_AUTH
-hooks:
-  permanentURLs:
-    __name: PERMANENT_HOOKS
-    __format: json
-  requestTimeout:
-    __name: REQUEST_TIMEOUT
-    __format: json
+
 redis:
   host: REDIS_HOST
   port: REDIS_PORT
-server:
-  bind: SERVER_BIND_IP
-  port: SERVER_PORT
+
+log:
+  level: LOG_LEVEL
+  filename: LOG_FILE
+  stdout: LOG_STDOUT
+
+modules:
+  ../db/redis/index.js:
+    config:
+      host: REDIS_HOST
+      port: REDIS_PORT
+  ../in/redis/index.js:
+    config:
+      redis:
+        host: REDIS_HOST
+        port: REDIS_PORT
+  ../out/webhooks/index.js:
+    config:
+      api:
+        bind: SERVER_BIND_IP
+        port: SERVER_PORT
+      queue:
+        enabled: ENABLE_WH_QUEUE
+      permanentURLs:
+        __name: PERMANENT_HOOKS
+        __format: json
+      requestTimeout:
+        __name: REQUEST_TIMEOUT
+        __format: json

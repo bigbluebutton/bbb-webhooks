@@ -1,5 +1,4 @@
-// This is a simple wrapper to run the app with 'node app.js'
+import Application from './application.js';
 
-Application = require('./application.js');
-application = new Application();
+const application = new Application();
 application.start();

@@ -1,27 +1,24 @@
-const sha1 = require("sha1");
-const url = require("url");
-
-const config = require("config");
-
-const Utils = exports;
+import sha1 from "sha1";
+import url from "url";
+import config from "config";
 
 // Calculates the checksum given a url `fullUrl` and a `salt`, as calculate by bbb-web.
-Utils.checksumAPI = function(fullUrl, salt) {
-  const query = Utils.queryFromUrl(fullUrl);
-  const method = Utils.methodFromUrl(fullUrl);
-  return Utils.checksum(method + query + salt);
+const checksumAPI = function(fullUrl, salt) {
+  const query = queryFromUrl(fullUrl);
+  const method = methodFromUrl(fullUrl);
+  return checksum(method + query + salt);
 };
 
 // Calculates the checksum for a string.
 // Just a wrapper for the method that actually does it.
-Utils.checksum = string => sha1(string);
+const checksum = string => sha1(string);
 
 // Get the query of an API call from the url object (from url.parse())
 // Example:
 //
 // * `fullUrl` = `http://bigbluebutton.org/bigbluebutton/api/create?name=Demo+Meeting&meetingID=Demo`
 // * returns: `name=Demo+Meeting&meetingID=Demo`
-Utils.queryFromUrl = function(fullUrl) {
+const queryFromUrl = function(fullUrl) {
 
   // Returns the query without the checksum.
   // We can't use url.parse() because it would change the encoding
@@ -43,14 +40,14 @@ Utils.queryFromUrl = function(fullUrl) {
 //
 // * `fullUrl` = `http://mconf.org/bigbluebutton/api/create?name=Demo+Meeting&meetingID=Demo`
 // * returns: `create`
-Utils.methodFromUrl = function(fullUrl) {
+const methodFromUrl = function(fullUrl) {
   const urlObj = url.parse(fullUrl, true);
   return urlObj.pathname.substr((config.get("bbb.apiPath") + "/").length);
 };
 
 // Returns the IP address of the client that made a request `req`.
 // If can not determine the IP, returns `127.0.0.1`.
-Utils.ipFromRequest = function(req) {
+const ipFromRequest = function(req) {
 
   // the first ip in the list if the ip of the client
   // the others are proxys between him and us
@@ -65,4 +62,37 @@ Utils.ipFromRequest = function(req) {
   if (!ipAddress) { ipAddress = req.connection != null ? req.connection.remoteAddress : undefined; }
   if (!ipAddress) { ipAddress = "127.0.0.1"; }
   return ipAddress;
+};
+
+const isEmpty = (obj) => [Object, Array].includes((obj || {}).constructor)
+  && !Object.entries((obj || {})).length;
+
+const sortBy = (key) => (a, b) => {
+  if (a[key] > b[key]) return 1;
+  if (a[key] < b[key]) return -1;
+  return 0;
+};
+
+const stringify = (obj) => {
+  if (obj == null) return obj;
+
+  switch (typeof obj) {
+    case "string":
+      return obj;
+    case "object":
+      return JSON.stringify(obj);
+    default:
+      return obj.toString();
+  }
+}
+
+export default {
+  checksumAPI,
+  checksum,
+  queryFromUrl,
+  methodFromUrl,
+  ipFromRequest,
+  isEmpty,
+  sortBy,
+  stringify,
 };

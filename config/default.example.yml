@@ -1,3 +1,8 @@
+log:
+  level: debug
+  filename: /var/log/bigbluebutton/bbb-webhooks.log
+  stdout: true
+
 # Shared secret of your BigBlueButton server.
 bbb:
   serverDomain: myserver.com
@@ -5,51 +10,6 @@ bbb:
   # Whether to use Auth2.0 or not, Auth2.0 sends the sharedSecret whithin an Authorization header as a bearer
   auth2_0: false
   apiPath: /bigbluebutton/api
-
-# The port in which the API server will run.
-server:
-  bind: 127.0.0.1
-  port: 3005
-
-# Web hooks configs
-hooks:
-  channels:
-    - from-akka-apps-redis-channel
-    - from-bbb-web-redis-channel
-    - from-akka-apps-chat-redis-channel
-    - from-akka-apps-pres-redis-channel
-    - bigbluebutton:from-bbb-apps:meeting
-    - bigbluebutton:from-bbb-apps:users
-    - bigbluebutton:from-rap
-  # IP where permanent hook will post data (more than 1 URL means more than 1 permanent hook)
-  permanentURLs: []
-  # How many messages will be enqueued to be processed at the same time
-  queueSize: 10000
-  # Allow permanent hooks to receive raw message, which is the message straight from BBB
-  getRaw: true
-  # If set to higher than 1, will send events on the format:
-  # "event=[{event1},{event2}],timestamp=000" or "[{event1},{event2}]" (based on using auth2_0 or not)
-  # when there are more than 1 event on the queue at the moment of processing the queue.
-  multiEvent: 1
-  # Retry intervals for failed attempts for perform callback calls.
-  # In ms. Totals to around 5min.
-  retryIntervals:
-    - 100
-    - 500
-    - 1000
-    - 2000
-    - 4000
-    - 8000
-    - 10000
-    - 30000
-    - 60000
-    - 60000
-    - 60000
-    - 60000
-  # Reset permanent interval when exceeding maximum attemps
-  permanentIntervalReset: 8
-  # Hook's request module timeout for socket conn establishment and/or responses (ms)
-  requestTimeout: 5000
 
 # Mappings of internal to external meeting IDs
 mappings:
@@ -68,3 +28,73 @@ redis:
     eventsPrefix: bigbluebutton:webhooks:events
     userMaps: bigbluebutton:webhooks:userMaps
     userMapPrefix: bigbluebutton:webhooks:userMap
+
+# Basic module config entry template:
+#   key: <relative file path to app root if drop-in or module name if npm/github>,
+#     type: in|out|db,
+#     config: <module-specific config> (optional)
+#
+modules:
+  ../db/redis/index.js:
+    type: db
+    config:
+      host: 127.0.0.1
+      port: 6379
+  ../in/redis/index.js:
+    type: in
+    config:
+      redis:
+        host: 127.0.0.1
+        port: 6379
+        #password: foobar
+        inboundChannels:
+          - from-akka-apps-redis-channel
+          - from-bbb-web-redis-channel
+          - from-akka-apps-chat-redis-channel
+          - from-akka-apps-pres-redis-channel
+          - bigbluebutton:from-bbb-apps:meeting
+          - bigbluebutton:from-bbb-apps:users
+          - bigbluebutton:from-rap
+  ../out/webhooks/index.js:
+    type: out
+    config:
+      api:
+        bind: 127.0.0.1
+        port: 3005
+      queue:
+        enabled: false
+        maxSize: 10000
+        concurrency: 1
+      # IP where permanent hook will post data (more than 1 URL means more than 1 permanent hook)
+      permanentURLs: []
+      # How many messages will be enqueued to be processed at the same time
+      queueSize: 10000
+      # Allow permanent hooks to receive raw message, which is the message straight from BBB
+      getRaw: true
+      # If set to higher than 1, will send events on the format:
+      # "event=[{event1},{event2}],timestamp=000" or "[{event1},{event2}]" (based on using auth2_0 or not)
+      # when there are more than 1 event on the queue at the moment of processing the queue.
+      multiEvent: 1
+      # Retry intervals for failed attempts for perform callback calls.
+      # In ms. Totals to around 5min.
+      retryIntervals:
+        - 100
+        - 500
+        - 1000
+        - 2000
+        - 4000
+        - 8000
+        - 10000
+        - 30000
+        - 60000
+        - 60000
+        - 60000
+        - 60000
+      # Reset permanent interval when exceeding maximum attemps
+      permanentIntervalReset: 8
+      # Hook's request module timeout for socket conn establishment and/or responses (ms)
+      requestTimeout: 5000
+      retry:
+        attempts: 12
+        initialInterval: 1
+        increaseFactor: 2

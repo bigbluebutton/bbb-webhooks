@@ -1,50 +1,33 @@
-const config = require('config');
-const Hook = require("./hook.js");
-const IDMapping = require("./id_mapping.js");
-const WebHooks = require("./web_hooks.js");
-const WebServer = require("./web_server.js");
-const redis = require("redis");
-const UserMapping = require("./userMapping.js");
-const async = require("async");
+import config from 'config';
+import Logger from './src/common/logger.js';
+import ModuleManager from './src/modules/index.js';
+import EventProcessor from './src/process/event-processor.js';
 
-// Class that defines the application. Listens for events on redis and starts the
-// process to perform the callback calls.
-// TODO: add port (-p) and log level (-l) to the command line args
-module.exports = class Application {
-
+export default class Application {
   constructor() {
-    this.webHooks = new WebHooks();
-    this.webServer = new WebServer();
+    this.moduleManager = new ModuleManager(config.get("modules"));
+    this.eventProcessor = null;
+
+    this._initialized = false;
   }
 
-  start(callback) {
-    Hook.initialize(() => {
-      UserMapping.initialize(() => {
-        IDMapping.initialize(()=> {
-          async.parallel([
-            (callback) => { this.webServer.start(config.get("server.port"), config.get("server.bind"), callback) },
-            (callback) => { this.webServer.createPermanents(callback) },
-            (callback) => { this.webHooks.start(callback) }
-          ], (err,results) => {
-            if(err != null) {}
-            typeof callback === 'function' ? callback() : undefined;
-          });
-        });
-      });
+  async start() {
+    if (this._initialized) return Promise.resolve();
+
+    await this.moduleManager.load();
+    this.eventProcessor = new EventProcessor(
+      this.moduleManager.getInputModules(),
+      this.moduleManager.getOutputModules(),
+    );
+    await this.eventProcessor.start();
+
+    return Promise.all([
+    ]).then(() => {
+      Logger.info("bbb-webhooks started");
+      this._initialized = true;
+    }).catch((error) => {
+      Logger.error("Error starting bbb-webhooks", error);
+      process.exit(1);
     });
   }
-
-  static redisPubSubClient() {
-    if (!Application._redisPubSubClient) {
-      Application._redisPubSubClient = redis.createClient( { host: config.get("redis.host"), port: config.get("redis.port") } );
-    }
-    return Application._redisPubSubClient;
-  }
-
-  static redisClient() {
-    if (!Application._redisClient) {
-      Application._redisClient = redis.createClient( { host: config.get("redis.host"), port: config.get("redis.port") } );
-    }
-    return Application._redisClient;
-  }
-};
+}
