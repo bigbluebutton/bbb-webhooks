@@ -90,13 +90,14 @@ export default class ModuleManager {
     process.on('uncaughtException', async (error) => {
       this.logger.error("CRITICAL: uncaught exception, shutdown", { error: error.stack });
       await this.stopModules();
-      process.exit('1');
+      if (process.env.NODE_ENV !== 'production') process.exit(1);
     });
 
     // Added this listener to identify unhandled promises, but we should start making
     // sense of those as we find them
     process.on('unhandledRejection', (reason) => {
       this.logger.error("CRITICAL: Unhandled promise rejection", { reason: reason.toString(), stack: reason.stack });
+      if (process.env.NODE_ENV !== 'production') process.exit(1);
     });
   }
 
