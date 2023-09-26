@@ -1,9 +1,8 @@
-import config from 'config';
 import {
   v4 as uuidv4,
   v5 as uuidv5,
 } from 'uuid';
-import { StorageItem, StorageCompartmentKV } from './base-storage.js';
+import { StorageCompartmentKV } from './base-storage.js';
 
 // The database of hooks.
 // Used always from memory, but saved to redis for persistence.
@@ -21,9 +20,6 @@ import { StorageItem, StorageCompartmentKV } from './base-storage.js';
 // it will only receive calls related to this meeting, otherwise it will be global.
 // faster than the callbacks are made. In this case the events will be concatenated
 // and send up to 10 events in every post
-
-let REDIS_CLIENT = null;
-
 class HookCompartment extends StorageCompartmentKV {
   constructor(client, prefix, setId, options = {}) {
     super(client, prefix, setId, options);

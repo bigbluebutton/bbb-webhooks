@@ -1,4 +1,3 @@
-import config from 'config';
 import CallbackEmitter from './callback-emitter.js';
 import HookCompartment from '../../db/redis/hooks.js';
 
@@ -15,7 +14,7 @@ export default class WebHooks {
     return Promise.resolve();
   }
 
-  _processRaw(devent) {
+  _processRaw(event) {
     let meetingID;
     let hooks = HookCompartment.get().allGlobalSync();
 
@@ -25,13 +24,15 @@ export default class WebHooks {
 
     if (meetingID != null) {
       const eMeetingID = this._extractExternalMeetingID(event);
-      hooks = hooks.concat(HookCompartment.get().findByExternalMeeting(eMeetingID));
+      hooks = hooks.concat(HookCompartment.get().findByExternalMeetingID(eMeetingID));
       // Notify the hooks that expect raw data
       return Promise.all(hooks.map((hook) => {
-        if (hook.getRaw) {
-          this.logger.info('enqueueing a raw event in the hook', { callbackURL: hook.payload.callbackURL });
+        if (hook == null) return Promise.resolve();
+
+        if (hook.payload.getRaw) {
+          this.logger.info('dispatching raw event to hook', { callbackURL: hook.payload.callbackURL });
           return this.dispatch(event, hook).catch((error) => {
-            this.logger.error('failed to enqueue', { calbackURL: hook.callbackURL, error: error.stack });
+            this.logger.error('failed to enqueue', { calbackURL: hook.payload.callbackURL, error: error.stack });
           });
         }
 
@@ -66,7 +67,7 @@ export default class WebHooks {
           || event.data.id == null
           || (!hook.payload.eventID.some((ev) => ev == event.data.id.toLowerCase())))
       ) {
-        Logger.info(`[Hook] ${hook.payload.callbackURL} skipping event from queue because not in event list for hook: ${JSON.stringify(event)}`);
+        this.logger.info(`${hook.payload.callbackURL} skipping event because not in event list for hook: ${JSON.stringify(event)}`);
         return ;
       }
 
@@ -88,7 +89,7 @@ export default class WebHooks {
       emitter.once("stopped", () => {
         this.logger.warn(`too many failed attempts to perform a callback call, removing the hook for: ${hook.payload.callbackURL}`);
         // TODO just disable
-        return hook.destroy().then(resolve).catch(resolve);
+        return hook.destroy().then(resolve).catch(reject);
       });
     });
   }
@@ -110,17 +111,17 @@ export default class WebHooks {
 
     return Promise.all(hooks.map((hook) => {
       if (hook == null) return Promise.resolve();
-      if (!hook.getRaw) {
-        this.logger.info('dispatching raw event in the hook', { callbackURL: hook.payload.callbackURL });
+      if (!hook.payload.getRaw) {
+        this.logger.info('dispatching event to hook', { callbackURL: hook.payload.callbackURL });
         return this.dispatch(event, hook).catch((error) => {
-          this.logger.error('failed to enqueue', { calbackURL: hook.callbackURL, error: error.stack });
+          this.logger.error('failed to enqueue', { calbackURL: hook.payload.callbackURL, error: error.stack });
         });
       }
 
       return Promise.resolve();
-    })).then(() => {;
-      const sendRaw = hooks.some(hook => hook && hook.getRaw);
-      if (sendRaw && config.get("hooks.getRaw")) return this._processRaw(raw);
+    })).then(() => {
+      const sendRaw = hooks.some(hook => hook && hook.payload.getRaw);
+      if (sendRaw && this.config.getRaw) return this._processRaw(raw);
 
       return Promise.resolve();
     });
