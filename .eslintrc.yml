@@ -1,11 +1,12 @@
 env:
   node: true
-  es2023: true
-extends: 
+  es2020: true
+extends:
   - eslint:recommended
   - plugin:import/recommended
 parserOptions:
   sourceType: module
+  ecmaVersion: 2020
 rules:
   #quotes: ["warn", "single"]
   no-console: "warn"
