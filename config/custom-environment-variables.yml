@@ -12,6 +12,9 @@ log:
   filename: LOG_FILE
   stdout: LOG_STDOUT
 
+mappings:
+  timeout: MAPPINGS_TIMEOUT
+
 modules:
   ../db/redis/index.js:
     config:
