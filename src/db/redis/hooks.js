@@ -21,8 +21,45 @@ import { StorageCompartmentKV } from './base-storage.js';
 // faster than the callbacks are made. In this case the events will be concatenated
 // and send up to 10 events in every post
 class HookCompartment extends StorageCompartmentKV {
+  static itemDeserializer(data) {
+    const { id, ...payload } = data;
+    const parsedPayload = {
+      callbackURL: payload.callbackURL,
+      externalMeetingID: payload.externalMeetingID,
+      // Should be an array
+      eventID: payload.eventID?.split(','),
+      // Should be a boolean
+      permanent: payload.permanent === 'true',
+      // Should be a boolean
+      getRaw: payload.getRaw === 'true',
+    };
+
+    return {
+      id,
+      ...parsedPayload,
+    };
+  }
+
   constructor(client, prefix, setId, options = {}) {
     super(client, prefix, setId, options);
+  }
+
+  _buildPayload({
+    callbackURL,
+    meetingID = null,
+    eventID = null,
+    permanent = false,
+    getRaw = false,
+  }) {
+    if (callbackURL == null) throw new Error('callbackURL is required');
+
+    return {
+      callbackURL,
+      externalMeetingID: meetingID,
+      eventID,
+      permanent,
+      getRaw,
+    }
   }
 
   setOptions(options) {
@@ -53,13 +90,13 @@ class HookCompartment extends StorageCompartmentKV {
     permanent,
     getRaw,
   }) {
-    const payload = {
+    const payload = this._buildPayload({
       callbackURL,
       externalMeetingID: meetingID,
       eventID: eventID?.toLowerCase().split(','),
       permanent,
       getRaw,
-    };
+    });
 
     let hook = this.findByField('callbackURL', callbackURL);
 
@@ -70,9 +107,7 @@ class HookCompartment extends StorageCompartmentKV {
       }
     }
 
-    let logMsg = `adding a hook with callback URL: [${callbackURL}],`;
-    if (meetingID != null) { logMsg += ` for the meeting: [${meetingID}]`; }
-    this.logger.info(logMsg);
+    this.logger.info(`adding a hook with callback URL: [${callbackURL}]`, { payload });
     const id = permanent ? uuidv5(callbackURL, uuidv5.URL) : uuidv4();
     hook = await this.save(payload, {
       id,
@@ -129,7 +164,9 @@ const init = (redisClient, prefix, setId) => {
     Hooks = new HookCompartment(
       redisClient,
       prefix,
-      setId,
+      setId, {
+        deserializer: HookCompartment.itemDeserializer,
+      },
     );
     return Hooks.initialize();
   }

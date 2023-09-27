@@ -133,7 +133,7 @@ export default class API {
         });
 
         if (duplicated) {
-          API.logger.warn(`duplicated permanent hook ${hook.id}`);
+          API.logger.info(`permanent hook already set ${hook.id}`, { hook: hook.payload });
         } else if (hook != null) {
           API.logger.info('permanent hook created successfully');
         } else {

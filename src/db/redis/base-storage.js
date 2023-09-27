@@ -4,11 +4,11 @@ import { v4 as uuidv4 } from 'uuid';
 const stringifyValues = (o) => {
   Object.keys(o).forEach(k => {
     // Make all values strings, but ignore nullish/undefined values.
-    if (typeof o[k] === 'object') {
-      o[k] = JSON.stringify(stringifyValues(o[k]));
-    } else if (o[k] == null) {
+    if (o[k] == null) {
       delete o[k];
-    } else {
+    } else if (typeof o[k] === 'object') {
+      o[k] = JSON.stringify(stringifyValues(o[k]));
+    }  else {
       o[k] = '' + o[k];
     }
   });
@@ -17,9 +17,13 @@ const stringifyValues = (o) => {
 }
 
 class StorageItem {
+  static stringifyValues = stringifyValues;
+
   constructor(client, prefix, setId, payload, {
     id = uuidv4(),
     alias,
+    serializer,
+    deserializer,
     ...appOptions
   }) {
     this.client = client;
@@ -28,6 +32,8 @@ class StorageItem {
     this.id = id;
     this.alias = alias;
     this.payload = payload;
+    if (typeof serializer === 'function') this.serialize = serializer.bind(this);
+    if (typeof deserializer === 'function') this.deserialize = deserializer.bind(this);
     this.appOptions = appOptions;
     this.redisClient = client;
     this.logger = newLogger(`db:${this.prefix}|${this.setId}`);
@@ -35,16 +41,16 @@ class StorageItem {
 
   async save() {
     try {
-      await this.redisClient.hSet(this.prefix + ":" + this.id, this.serialize());
+      await this.redisClient.hSet(this.prefix + ":" + this.id, this.serialize(this));
     } catch (error) {
-      this.logger.error(`error saving mapping to redis: ${error}`);
+      this.logger.error('error saving mapping to redis', error);
       throw error;
     }
 
     try {
       await this.redisClient.sAdd(this.setId, (this.id).toString());
     } catch (error) {
-      this.logger.error(`error saving mapping ID to the list of mappings: ${error}`);
+      this.logger.error('error saving mapping ID to the list of mappings', error);
       throw error;
     }
 
@@ -55,22 +61,22 @@ class StorageItem {
     try {
       await this.redisClient.sRem(this.setId, (this.id).toString());
     } catch (error) {
-      this.logger.error(`error removing mapping ID from the list of mappings: ${error}`);
+      this.logger.error('error removing mapping ID from the list of mappings', error);
     }
 
     try {
       await this.redisClient.del(this.prefix + ":" + this.id);
     } catch (error) {
-      this.logger.error(`error removing mapping from redis: ${error}`);
+      this.logger.error('error removing mapping from redis', error);
     }
 
     return true;
   }
 
-  serialize() {
+  serialize(data) {
     const r = {
-      id: this.id,
-      ...this.payload,
+      id: data.id,
+      ...data.payload,
     };
 
     const s = Object.entries(stringifyValues(r)).flat();
@@ -78,20 +84,22 @@ class StorageItem {
   }
 
   deserialize(data) {
-    const { id, ...payload } = data;
-    this.id = id;
-    this.payload = payload;
+    return JSON.parse(data);
   }
 
   print() {
-    return this.serialize();
+    return this.serialize(this);
   }
 }
 
 class StorageCompartmentKV {
+  static stringifyValues = stringifyValues;
+
   constructor (client, prefix, setId, {
     itemClass = StorageItem,
     aliasField,
+    serializer,
+    deserializer,
     ...appOptions
   } = {}) {
     this.redisClient = client;
@@ -101,9 +109,26 @@ class StorageCompartmentKV {
     this.localStorage = {}
     this.aliasField = aliasField;
     this.appOptions = appOptions;
+    if (typeof serializer === 'function') this.serialize = serializer.bind(this);
+    if (typeof deserializer === 'function') this.deserialize = deserializer.bind(this);
 
     this.logger = newLogger(`db:${this.prefix}|${this.setId}`);
   }
+
+  serialize(data) {
+    const r = {
+      id: data.id,
+      ...data.payload,
+    };
+
+    const s = Object.entries(stringifyValues(r)).flat();
+    return s;
+  }
+
+  deserialize(data) {
+    return data;
+  }
+
 
   async save(payload, {
     id = uuidv4(),
@@ -116,6 +141,9 @@ class StorageCompartmentKV {
     let mapping = new this.itemClass(this.redisClient, this.prefix, this.setId, payload, {
       id,
       alias,
+      serializer: this.serialize,
+      deserializer: this.deserialize,
+      ...this.appOptions,
     });
 
     await mapping.save();
@@ -220,36 +248,38 @@ class StorageCompartmentKV {
     try {
       const mappings = await this.redisClient.sMembers(this.setId);
 
+      this.logger.info(`starting resync, mappings registered: [${mappings}]`);
       if (mappings != null && mappings.length > 0) {
         return Promise.all(mappings.map(async (id) => {
           try {
-            const kek = await this.redisClient.hGetAll(this.prefix + ":" + id);
-            const { id: rId, ...mappingData } = kek;
+            const data = await this.redisClient.hGetAll(this.prefix + ":" + id);
+            const { id: rId, ...payload } = this.deserialize(data);
 
-            if (mappingData && Object.keys(mappingData).length > 0) {
-              await this.save(mappingData, {
+            if (payload && Object.keys(payload).length > 0) {
+              await this.save(payload, {
                 id: rId,
-                alias: mappingData[this.aliasField],
+                alias: payload[this.aliasField],
+                itemClass: this.itemClass
               });
             }
 
             return Promise.resolve();
           } catch (error) {
-            this.logger.error(`error getting information for a mapping from redis: ${error}`);
+            this.logger.error('error getting information for a mapping from redis', error);
             return Promise.resolve();
           }
         })).then(() => {
           const stringifiedMappings = this.getAll().map(m => m.print());
           this.logger.info(`finished resync, mappings registered: [${stringifiedMappings}]`);
         }).catch((error) => {
-          this.logger.error(`error getting list of mappings from redis: ${error}`);
+          this.logger.error('error getting list of mappings from redis', error);
         });
       }
 
       this.logger.info(`finished resync, no mappings registered`);
       return Promise.resolve();
     } catch (error) {
-      this.logger.error(`error getting list of mappings from redis: ${error}`);
+      this.logger.error('error getting list of mappings from redis', error);
       return Promise.resolve();
     }
   }
