@@ -14,10 +14,10 @@ export default class Application {
   async start() {
     if (this._initialized) return Promise.resolve();
 
-    await this.moduleManager.load();
+    const { inputModules, outputModules } = await this.moduleManager.load();
     this.eventProcessor = new EventProcessor(
-      this.moduleManager.getInputModules(),
-      this.moduleManager.getOutputModules(),
+      inputModules,
+      outputModules,
     );
     await this.eventProcessor.start();
 

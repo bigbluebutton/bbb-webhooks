@@ -10,7 +10,6 @@ import {
   validateModuleConf
 } from './definitions.js';
 
-
 const UNEXPECTED_TERMINATION_SIGNALS = ['SIGABRT', 'SIGBUS', 'SIGSEGV', 'SIGILL'];
 const BASE_CONFIGURATION = {
   server: {
@@ -56,26 +55,40 @@ export default class ModuleManager {
     return this.getModulesByType(ModuleManager.moduleTypes.db);
   }
 
+  _sortModulesByPriority(a, b) {
+    // Sort modules by priority: db modules first, then input modules, then output modules
+    const aD = a[1]
+    const bD = b[1]
+
+    if (aD.type === ModuleManager.moduleTypes.db && bD.type !== ModuleManager.moduleTypes.db) {
+      return -1;
+    } else if (aD.type !== ModuleManager.moduleTypes.db && bD.type === ModuleManager.moduleTypes.db) {
+      return 1;
+    } else if (aD.type === ModuleManager.moduleTypes.in && bD.type === ModuleManager.moduleTypes.out) {
+      return -1;
+    } else if (aD.type === ModuleManager.moduleTypes.out && bD.type === ModuleManager.moduleTypes.in) {
+      return 1;
+    } else {
+      return 0;
+    }
+  }
+
   async load() {
-    const loaders = Object.entries(this.modulesConfig).map(([name, description]) => {
+    const sortedModules = Object.entries(this.modulesConfig).sort(this._sortModulesByPriority);
+
+    for (const [name, description] of sortedModules) {
       try {
         const fullConfiguration = { name, ...description };
         validateModuleConf(fullConfiguration);
         const context = this._buildContext(fullConfiguration);
         const module = new ModuleWrapper(name, description.type, context, context.configuration.config);
-        return module.load().then(() => {
-          this.modules[name] = module;
-          this.logger.info(`module ${name} loaded`);
-        }).catch((error) => {
-          this.logger.error(`failed to load module ${name}`, { error: error.stack });
-        });
+        await module.load()
+        this.modules[name] = module;
+        this.logger.info(`module ${name} loaded`);
       } catch (error) {
-        this.logger.error(`failed to load module ${name} configuration`, { error: error.stack });
-        return Promise.resolve();
+        this.logger.error(`failed to load module ${name}`, error);
       }
-    });
-
-    await Promise.all(loaders);
+    }
 
     process.on('SIGTERM', async () => {
       await this.stopModules();
@@ -99,6 +112,12 @@ export default class ModuleManager {
       this.logger.error("CRITICAL: Unhandled promise rejection", { reason: reason.toString(), stack: reason.stack });
       if (process.env.NODE_ENV !== 'production') process.exit(1);
     });
+
+    return {
+      inputModules: this.getInputModules(),
+      outputModules: this.getOutputModules(),
+      dbModules: this.getDBModules(),
+    };
   }
 
   trackModuleShutdown (proc) {

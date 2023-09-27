@@ -2,7 +2,7 @@
 
 import { newLogger } from '../common/logger.js';
 import { MODULE_TYPES, validateModuleDefinition } from './definitions.js';
-import { createQueue, getQueue, deleteQueue } from './queue.js';
+import { createQueue, getQueue } from './queue.js';
 
 //  [MODULE_TYPES.INPUT]: {
 //    load: 'function',
@@ -109,14 +109,14 @@ export default class ModuleWrapper {
       case MODULE_TYPES.in:
         this.setContext(this.context);
         this.setCollector(this.context.collector || ModuleWrapper._defaultCollector);
-        break;
+        return Promise.resolve();
       case MODULE_TYPES.out:
         this.setContext(this.context);
         this._setupOutboundQueues();
-        break;
+        return Promise.resolve();
       case MODULE_TYPES.db:
         this.setContext(this.context);
-        break;
+        return Promise.resolve();
       default:
         throw new Error(`module ${this.name} has an invalid type`);
     }
@@ -150,7 +150,7 @@ export default class ModuleWrapper {
       throw new Error(`module ${this.name} is not valid`);
     }
 
-    this._bootstrap();
+    await this._bootstrap();
     // Call the module's load() method
     await this._module.load();
 
