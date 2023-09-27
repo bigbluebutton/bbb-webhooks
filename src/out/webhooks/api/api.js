@@ -108,8 +108,7 @@ export default class API {
       if (duplicated) {
         msg = responses.createDuplicated(hook.id);
       } else if (hook != null) {
-        const { id, payload } = hook;
-        const { permanent, getRaw } = payload;
+        const { permanent, getRaw } = hook.payload;
         msg = responses.createSuccess(hook.id, permanent, getRaw);
       } else {
         msg = responses.createFailure;
@@ -126,7 +125,7 @@ export default class API {
   async createPermanents() {
     for (let i = 0; i < this._permanentURLs.length; i++) {
       try {
-        const { url: callbackURL, getRaw } = this._permanentURLs[i].url;
+        const { url: callbackURL, getRaw } = this._permanentURLs[i];
         const { hook, duplicated } = await API.storage.get().addSubscription({
           callbackURL,
           permanent: this._isHookPermanent(callbackURL),

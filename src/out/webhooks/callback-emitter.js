@@ -63,7 +63,7 @@ export default class CallbackEmitter extends EventEmitter {
           this.emit("failure", error);
 
           // get the next interval we have to wait and schedule a new try
-          const interval = this.retryIntervals[this.nextInterval];
+          const interval = this._retryIntervals[this.nextInterval];
           if (interval != null) {
             Logger.warn(`trying the callback again in ${interval/1000.0} secs`);
             this.nextInterval++;
@@ -120,10 +120,17 @@ export default class CallbackEmitter extends EventEmitter {
       const checksum = Utils.checksum(`${this.callbackURL}${JSON.stringify(data)}${sharedSecret}`);
 
       // get the final callback URL, including the checksum
-      const urlObj = url.parse(this.callbackURL, true);
+
       let callbackURL = this.callbackURL;
-      callbackURL += Utils.isEmpty(urlObj.search) ? "?" : "&";
-      callbackURL += `checksum=${checksum}`;
+      try {
+        const urlObj = url.parse(this.callbackURL, true);
+        callbackURL += Utils.isEmpty(urlObj.search) ? "?" : "&";
+        callbackURL += `checksum=${checksum}`;
+      } catch (e) {
+        Logger.error(`error parsing callback URL: ${this.callbackURL}`);
+        callback(e, false);
+        return;
+      }
 
       requestOptions = {
         followRedirect: true,
