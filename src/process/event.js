@@ -97,6 +97,10 @@ export default class WebhooksEvent {
     PAD_EVENTS: [
       "PadContentEvtMsg"
     ],
+    POLL_EVENTS: [
+      "PollStartedEvtMsg",
+      "UserRespondedToPollRespMsg",
+    ],
   }
 
   constructor(inputEvent) {
@@ -119,6 +123,8 @@ export default class WebhooksEvent {
         this.compRapTemplate(this.inputEvent);
       } else if (this.mappedEvent(this.inputEvent, WebhooksEvent.RAW.PAD_EVENTS)) {
         this.padTemplate(this.inputEvent);
+      } else if (this.mappedEvent(this.inputEvent, WebhooksEvent.RAW.POLL_EVENTS)) {
+        this.pollTemplate(this.inputEvent);
       } else if (this.mappedEvent(this.inputEvent, WebhooksEvent.OUTPUT_EVENTS)) {
         // Check if input is already a mapped event and return it
         this.outputEvent = this.inputEvent;
@@ -387,6 +393,46 @@ export default class WebhooksEvent {
     };
   }
 
+  pollTemplate(messageObj) {
+    const {
+      body,
+      header,
+    } = messageObj.core;
+    const extId = UserMapping.get().getExternalUserID(header.userId) || body.extId || "";
+
+    this.outputEvent = {
+      data: {
+        type: "event",
+        id: this.mapInternalMessage(messageObj),
+        attributes:{
+          meeting:{
+            "internal-meeting-id": messageObj.envelope.routing.meetingId,
+            "external-meeting-id": IDMapping.get().getExternalMeetingID(messageObj.envelope.routing.meetingId)
+          },
+          user:{
+            "internal-user-id": header.userId,
+            "external-user-id": extId,
+          },
+          poll: {
+            "id": body.pollId
+          }
+        },
+        event: {
+          "ts": Date.now()
+        }
+      }
+    };
+
+    if (this.outputEvent.data.id === "poll-started") {
+      this.outputEvent.data.attributes.poll = {
+        question: body.question,
+        answers: body.poll.answers,
+      };
+    } else if (this.outputEvent.data.id === "poll-responded") {
+      this.outputEvent.data.attributes.poll.answerIds = body.answerIds;
+    }
+  }
+
   mapInternalMessage(message) {
     const name = message?.envelope?.name || message?.header?.name;
 
@@ -411,6 +457,8 @@ export default class WebhooksEvent {
       case "UnpublishedRecordingSysMsg": return "rap-unpublished";
       case "DeletedRecordingSysMsg": return "rap-deleted";
       case "PadContentEvtMsg": return "pad-content";
+      case "PollStartedEvtMsg": return "poll-started";
+      case "UserRespondedToPollRespMsg": return "poll-responded";
       // RAP
       case "archive_started": return "rap-archive-started";
       case "archive_ended": return "rap-archive-ended";
