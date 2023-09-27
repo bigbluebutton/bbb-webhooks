@@ -29,12 +29,14 @@ const timeout = (ms) => {
 };
 
 export default class InFile {
+  static type = "in";
+
   static _defaultCollector () {
     throw new Error('Collector not set');
   }
 
   constructor (context, config = {}) {
-    this.type = "in";
+    this.type = InFile.type;
     this.config = config;
     this.setContext(context);
     this.loaded = false;

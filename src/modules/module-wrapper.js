@@ -30,6 +30,8 @@ export default class ModuleWrapper {
 
   constructor (name, type, context, config = {}) {
     this.name = name;
+    this.type = type;
+    this.id = `${name}-${type}`;
     this.context = context;
     this.config = config;
     this.logger = newLogger('module-wrapper');
@@ -68,8 +70,16 @@ export default class ModuleWrapper {
     return this._config;
   }
 
+  set type(type) {
+    if (this._module) {
+      throw new Error(`module ${this.name} already loaded`);
+    }
+
+    this._type = type;
+  }
+
   get type() {
-    return this._module?.type;
+    return this._module?.type || this._type;
   }
 
   _setupOutboundQueues() {
@@ -138,12 +148,19 @@ export default class ModuleWrapper {
     // Dynamically import the module provided via this.name
     // and instantiate it with the context and config provided
     this._module = await import(this.name).then((module) => {
+      // Check if the module is an array of modules
+      // If so, select just the one that matches the provided type (this.type)
+      if (Array.isArray(module.default)) {
+        module = module.default.find((m) => m.type === this.type);
+        if (!module) throw new Error(`module ${this.name} does not exist or is badly defined`);
+        return new module(this.context, this.config);
+      }
+
       return new module.default(this.context, this.config);
     }).catch((error) => {
       this.logger.error(`error loading module ${this.name}`, error);
       throw error;
     });
-
 
     // Validate the module
     if (!validateModuleDefinition(this._module)) {
@@ -163,6 +180,8 @@ export default class ModuleWrapper {
     if (this._module?.unload) {
       return this._module.unload();
     }
+
+    return Promise.resolve();
   }
 
   setContext(context) {

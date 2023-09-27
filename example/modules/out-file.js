@@ -28,12 +28,14 @@ const timeout = (ms) => {
 };
 
 export default class OutFile {
+  static type = "out";
+
   static _defaultCollector () {
     throw new Error('Collector not set');
   }
 
   constructor (context, config = {}) {
-    this.type = "out";
+    this.type = OutFile.type;
     this.config = config;
     this.setContext(context);
     this.loaded = false;

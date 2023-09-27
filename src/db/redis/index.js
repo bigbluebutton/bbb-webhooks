@@ -19,9 +19,11 @@ import UserMappingC from './user-mapping.js';
  */
 
 export default class RedisDB {
+  static type = "db";
+
   constructor (context, config = {}) {
     this.name = 'db-redis';
-    this.type = 'db';
+    this.type = RedisDB.type;
     this.context = this.setContext(context);
     this.config = config;
     this.logger = context.getLogger(this.name);

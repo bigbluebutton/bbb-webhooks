@@ -42,7 +42,6 @@ export default class EventProcessor {
   }
 
   processInputEvent(event) {
-
     try {
       const rawEvent = this._parseEvent(event);
       const eventInstance = new WebhooksEvent(rawEvent);

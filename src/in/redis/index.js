@@ -12,12 +12,14 @@ import Utils from '../../common/utils.js';
  */
 
 export default class InRedis {
+  static type = "in";
+
   static _defaultCollector () {
     throw new Error('Collector not set');
   }
 
   constructor (context, config = {}) {
-    this.type = "in";
+    this.type = InRedis.type;
     this.config = config;
     this.setContext(context);
 

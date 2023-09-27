@@ -27,14 +27,28 @@ const BASE_CONFIGURATION = {
 export default class ModuleManager {
   static moduleTypes = MODULE_TYPES;
 
+  static flattenModulesConfig(config) {
+    // A configuration entry can either be an object (single module) or an array
+    // (multiple modules of different types, eg input and output)
+    // Need to flatten those into a single array of [name, description] tuples
+    // so we can sort them by priority
+    return Object.entries(config).flatMap(([name, description]) => {
+      if (Array.isArray(description)) {
+        return description.map((d) => [name, d]);
+      } else {
+        return [[name, description]];
+      }
+    });
+  }
+
   constructor(modulesConfig) {
-    this.modulesConfig = modulesConfig;
+    this.modulesConfig = ModuleManager.flattenModulesConfig(modulesConfig);
     this.modules = {};
-    validateModulesConf(modulesConfig);
+    validateModulesConf(this.modulesConfig);
     this.logger = newLogger('module-manager');
   }
 
-  _buildContext(configuration) {
+    _buildContext(configuration) {
     configuration.config = { ...BASE_CONFIGURATION, ...configuration.config };
     return new Context(configuration);
   }
@@ -74,7 +88,7 @@ export default class ModuleManager {
   }
 
   async load() {
-    const sortedModules = Object.entries(this.modulesConfig).sort(this._sortModulesByPriority);
+    const sortedModules = this.modulesConfig.sort(this._sortModulesByPriority);
 
     for (const [name, description] of sortedModules) {
       try {
@@ -83,7 +97,7 @@ export default class ModuleManager {
         const context = this._buildContext(fullConfiguration);
         const module = new ModuleWrapper(name, description.type, context, context.configuration.config);
         await module.load()
-        this.modules[name] = module;
+        this.modules[module.id] = module;
         this.logger.info(`module ${name} loaded`);
       } catch (error) {
         this.logger.error(`failed to load module ${name}`, error);

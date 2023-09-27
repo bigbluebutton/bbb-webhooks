@@ -6,25 +6,24 @@ export const MODULE_TYPES = {
 
 export const MODULE_DEFINITION_SCHEMA = {
   [MODULE_TYPES.in]: {
+    type: 'string',
     load: 'function',
     unload: 'function',
     setContext: 'function',
     setCollector: 'function',
   },
   [MODULE_TYPES.out]: {
+    type: 'string',
     load: 'function',
     unload: 'function',
     setContext: 'function',
     onEvent: 'function',
   },
   [MODULE_TYPES.db]: {
+    type: 'string',
     load: 'function',
     unload: 'function',
     setContext: 'function',
-    save: 'function',
-    read: 'function',
-    remove: 'function',
-    clear: 'function',
   },
 }
 

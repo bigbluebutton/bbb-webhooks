@@ -12,12 +12,14 @@ import HookCompartment from '../../db/redis/hooks.js';
  */
 
 export default class OutWebHooks {
+  static type = "out";
+
   static _defaultCollector () {
     throw new Error('Collector not set');
   }
 
   constructor (context, config = {}) {
-    this.type = "out";
+    this.type = OutWebHooks.type;
     this.config = config;
     this.setContext(context);
     this.api = new API({
