@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node app.js",
-    "test": "mocha",
+    "test": "ALLOW_CONFIG_MUTATIONS=true mocha",
     "lint": "./node_modules/.bin/eslint ./",
     "lint:file": "./node_modules/.bin/eslint"
   },

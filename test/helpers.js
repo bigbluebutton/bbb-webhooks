@@ -1,8 +1,7 @@
-
 const helpers = {};
 
-helpers.url = 'http://10.0.3.179'; //serverUrl
-helpers.port = ':3005'
+helpers.url = 'http://127.0.0.1';
+helpers.port = ':3005';
 helpers.callback = 'http://we2bh.requestcatcher.com'
 helpers.callbackURL = '?callbackURL=' + helpers.callback
 helpers.apiPath = '/bigbluebutton/api/hooks/'
@@ -10,6 +9,7 @@ helpers.createUrl = helpers.port + helpers.apiPath + 'create/' + helpers.callbac
 helpers.destroyUrl = (id) => { return helpers.port + helpers.apiPath + 'destroy/' + '?hookID=' + id }
 helpers.destroyPermanent = helpers.port + helpers.apiPath + 'destroy/' + '?hookID=1'
 helpers.createRaw = '&getRaw=true'
+helpers.createPermanent = '&permanent=true'
 helpers.listUrl = 'list/'
 helpers.rawMessage = {
   envelope: {
@@ -35,12 +35,11 @@ helpers.rawMessage = {
 };
 
 helpers.flushall = (rClient) => {
-  let client = rClient;
-  client.flushdb()
+  rClient.flushDb()
 }
 
 helpers.flushredis = (hook) => {
-  hook.redisClient.flushdb();
+  if (hook?.client) hook.client.flushDb();
 }
 
-module.exports = helpers;
+export default helpers;
