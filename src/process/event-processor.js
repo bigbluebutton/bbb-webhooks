@@ -49,16 +49,16 @@ export default class EventProcessor {
 
       if (!Utils.isEmpty(outputEvent)) {
         Logger.debug('raw event succesfully parsed', { rawEvent });
-        const intId = outputEvent.data.attributes.meeting["internal-meeting-id"];
-        IDMapping.get().reportActivity(intId);
+        const internalMeetingId = outputEvent.data.attributes.meeting["internal-meeting-id"];
+        IDMapping.get().reportActivity(internalMeetingId);
 
         // First treat meeting events to add/remove ID mappings
         switch (outputEvent.data.id) {
           case "meeting-created":
-            IDMapping.get().addOrUpdateMapping(intId,
+            IDMapping.get().addOrUpdateMapping(internalMeetingId,
               outputEvent.data.attributes.meeting["external-meeting-id"]
             ).catch((error) => {
-              Logger.error(`error adding mapping: ${error}`, {
+              Logger.error(`error adding meeting mapping: ${error}`, {
                 error: error.stack,
                 event,
               });
@@ -72,10 +72,10 @@ export default class EventProcessor {
             UserMapping.get().addOrUpdateMapping(
               outputEvent.data.attributes.user["internal-user-id"],
               outputEvent.data.attributes.user["external-user-id"],
-              intId,
+              internalMeetingId,
               outputEvent.data.attributes.user
             ).catch((error) => {
-              Logger.error(`error adding mapping: ${error}`, {
+              Logger.error(`error adding user mapping: ${error}`, {
                 error: error.stack,
                 event,
               })
@@ -84,12 +84,24 @@ export default class EventProcessor {
             });
             break;
           case "user-left":
-            UserMapping.get().removeMapping(outputEvent.data.attributes.user["internal-user-id"], () => {
+            UserMapping.get().removeMapping(
+            outputEvent.data.attributes.user["internal-user-id"]
+            ).catch((error) => {
+              Logger.error(`error removing user mapping: ${error}`, {
+                error: error.stack,
+                event,
+              });
+            }).finally(() => {
               this._notifyOutputModules(outputEvent, rawEvent);
             });
             break;
           case "meeting-ended":
-            IDMapping.get().removeMapping(intId, () => {
+            IDMapping.get().removeMapping(internalMeetingId).catch((error) => {
+              Logger.error(`error removing meeting mapping: ${error}`, {
+                error: error.stack,
+                event,
+              });
+            }).finally(() => {
               this._notifyOutputModules(outputEvent, rawEvent);
             });
             break;

@@ -177,7 +177,9 @@ class StorageCompartmentKV {
 
   async destroyWithField(field, value) {
     return Promise.all(
-      Object.keys(this.localStorage).map(internal => {
+      Object.keys(this.localStorage).filter(internal => {
+        return this.localStorage[internal] && this.localStorage[internal]?.payload[field] === value;
+      }).map(internal => {
         let mapping = this.localStorage[internal];
         if (mapping.payload[field] === value) {
           return mapping.destroy()
@@ -196,7 +198,7 @@ class StorageCompartmentKV {
               }
             });
         } else {
-          return false;
+          return Promise.resolve(false);
         }
       })
     );
