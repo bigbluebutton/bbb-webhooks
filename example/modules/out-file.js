@@ -59,19 +59,6 @@ export default class OutFile {
     return true;
   }
 
-  async _writeEvent() {
-    if (this._fileHandle == null) {
-      this._fileHandle = await open(this.config.fileName, 'r');
-    }
-
-    const lines = this._fileHandle.readLines();
-
-    for await (const line of lines) {
-      await timeout(this.config.delay);
-      this._dispatch(line);
-    }
-  }
-
   _dispatch (event) {
     this.logger.debug(`read event from file: ${event}`);
 
@@ -87,6 +74,9 @@ export default class OutFile {
     try {
       this._validateConfig();
       this._fileHandle = await open(this.config.fileName, 'a');
+      if (this.config.rawFileName != null) {
+        this._rawFileHandle = await open(this.config.rawFileName, 'a');
+      }
       this.loaded = true;
     } catch (error) {
       this.logger.error('error loading OutFile:', error);
@@ -125,5 +115,11 @@ export default class OutFile {
       : JSON.stringify(event);
 
     await this._fileHandle.appendFile(writableMessage + "\n");
+    if (this._rawFileHandle != null) {
+      const writableRaw = this.config.prettyPrint
+        ? JSON.stringify(raw, null, 2)
+        : JSON.stringify(raw);
+      await this._rawFileHandle.appendFile(writableRaw + "\n");
+    }
   }
 }
