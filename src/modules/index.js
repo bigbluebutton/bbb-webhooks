@@ -70,7 +70,7 @@ export default class ModuleManager {
   }
 
   _sortModulesByPriority(a, b) {
-    // Sort modules by priority: db modules first, then input modules, then output modules
+    // Sort modules by priority: db modules first, then output modules, then input modules
     const aD = a[1]
     const bD = b[1]
 
@@ -78,9 +78,9 @@ export default class ModuleManager {
       return -1;
     } else if (aD.type !== ModuleManager.moduleTypes.db && bD.type === ModuleManager.moduleTypes.db) {
       return 1;
-    } else if (aD.type === ModuleManager.moduleTypes.in && bD.type === ModuleManager.moduleTypes.out) {
+    } else if (aD.type === ModuleManager.moduleTypes.out && bD.type !== ModuleManager.moduleTypes.out) {
       return -1;
-    } else if (aD.type === ModuleManager.moduleTypes.out && bD.type === ModuleManager.moduleTypes.in) {
+    } else if (aD.type !== ModuleManager.moduleTypes.out && bD.type === ModuleManager.moduleTypes.out) {
       return 1;
     } else {
       return 0;
