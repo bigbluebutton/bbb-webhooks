@@ -66,6 +66,7 @@ export default class WebhooksEvent {
       "UserBroadcastCamStartedEvtMsg",
       "UserBroadcastCamStoppedEvtMsg",
       "UserEmojiChangedEvtMsg",
+      "UserReactionEmojiChangedEvtMsg",
     ],
     CHAT_EVENTS: [
       "GroupChatMessageBroadcastEvtMsg",
@@ -189,6 +190,7 @@ export default class WebhooksEvent {
           "external-meeting-id": props.meetingProp.extId,
           "name": props.meetingProp.name,
           "is-breakout": props.meetingProp.isBreakout,
+          "parent-id": props.breakoutProps.parentId,
           "duration": props.durationProps.duration,
           "create-time": props.durationProps.createdTime,
           "create-date": props.durationProps.createdDate,
@@ -233,6 +235,7 @@ export default class WebhooksEvent {
             "name": msgBody.name,
             "role": msgBody.role,
             "presenter": msgBody.presenter,
+            "userdata": msgBody.userdata,
             "stream": msgBody.stream
           }
         },
@@ -247,6 +250,11 @@ export default class WebhooksEvent {
     } else if (this.outputEvent.data["id"] === "user-audio-voice-disabled") {
       this.outputEvent.data["attributes"]["user"]["listening-only"] = false;
       this.outputEvent.data["attributes"]["user"]["sharing-mic"] = false;
+    } else if (this.outputEvent.data["id"] === "user-emoji-changed") {
+      const emoji = msgBody.emoji || msgBody.reactionEmoji;
+      if (emoji && emoji !== "none") {
+        this.outputEvent.data["attributes"]["user"]["emoji"] = emoji;
+      }
     }
   }
 
@@ -266,11 +274,11 @@ export default class WebhooksEvent {
             "external-meeting-id": IDMapping.get().getExternalMeetingID(messageObj.envelope.routing.meetingId)
           },
           "chat-message":{
+            "id": body.msg.id,
             "message": body.msg.message,
             "sender":{
               "internal-user-id": body.msg.sender.id,
-              "external-user-id": body.msg.sender.name,
-              "timezone-offset": body.msg.fromTimezoneOffset,
+              "name": body.msg.sender.name,
               "time": body.msg.timestamp
             }
           },
@@ -331,6 +339,11 @@ export default class WebhooksEvent {
       this.outputEvent.data.attributes["step-time"] = data.step_time;
     }
 
+    if (this.outputEvent.data.id === "rap-archive-ended") {
+      this.outputEvent.data.attributes["recorded"] = data.recorded || false;
+      this.outputEvent.data.attributes["duration"] = data.duration || 0;
+    }
+
     if (data.workflow) {
       this.outputEvent.data.attributes.workflow = data.workflow;
     }
@@ -339,10 +352,10 @@ export default class WebhooksEvent {
       this.outputEvent.data.attributes.recording = {
         "name": data.metadata.meetingName,
         "is-breakout": data.metadata.isBreakout,
-        "start-time": data.startTime,
-        "end-time": data.endTime,
+        "start-time": data.start_time,
+        "end-time": data.end_time,
         "size": data.playback.size,
-        "raw-size": data.rawSize,
+        "raw-size": data.raw_size,
         "metadata": data.metadata,
         "playback": data.playback,
         "download": data.download
@@ -451,7 +464,9 @@ export default class WebhooksEvent {
       case "UserBroadcastCamStoppedEvtMsg": return "user-cam-broadcast-end";
       case "PresenterAssignedEvtMsg": return "user-presenter-assigned";
       case "PresenterUnassignedEvtMsg": return "user-presenter-unassigned";
-      case "UserEmojiChangedEvtMsg": return "user-emoji-changed";
+      case "UserEmojiChangedEvtMsg":
+      case "UserReactionEmojiChangedEvtMsg":
+        return "user-emoji-changed";
       case "GroupChatMessageBroadcastEvtMsg": return "chat-group-message-sent";
       case "PublishedRecordingSysMsg": return "rap-published";
       case "UnpublishedRecordingSysMsg": return "rap-unpublished";
