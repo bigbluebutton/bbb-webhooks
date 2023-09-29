@@ -74,11 +74,11 @@ export default class WebHooks {
       const emitter = new CallbackEmitter(
         hook.payload.callbackURL,
         event,
-        hook.payload.permanent, {
+        hook.payload.permanent,
+        this.config.server.domain, {
           permanentIntervalReset: this.config.permanentIntervalReset,
-          domain: this.config.domain,
-          secret: this.config.secret,
-          auth2_0: this.config.auth2_0,
+          secret: this.config.server.secret,
+          auth2_0: this.config.server.auth2_0,
           requestTimeout: this.config.requestTimeout,
           retryIntervals: this.config.retryIntervals,
         }

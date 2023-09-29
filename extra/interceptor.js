@@ -4,7 +4,7 @@
 // Uses the first meeting started after the application runs and will list all
 // events, but only the first time they happen.
 import express from "express";
-import request from "request";
+import fetch from "node-fetch";
 import sha1 from "sha1";
 import bodyParser from 'body-parser';
 
@@ -59,29 +59,35 @@ const params = "callbackURL=" + encodeForUrl(myUrl);
 const checksum = sha1("hooks/create" + params + sharedSecret);
 const fullUrl = "http://" + bbbDomain + "/bigbluebutton/api/hooks/create?" +
   params + "&checksum=" + checksum
-const requestOptions = {
-  uri: fullUrl,
-  method: "GET"
-}
 console.log("Registering a hook with", fullUrl);
-const registerHook = () => {
-  request(requestOptions, (error, response, body) => {
-    const statusCode = response?.statusCode;
-    // consider 401 as success, because the callback worked but was denied by the recipient
-    if (statusCode >= 200 && statusCode < 300) {
-      console.debug("Hook registered - response from hook/create:", body);
+
+const registerHook = async () => {
+  const controller = new AbortController();
+  const abortTimeout = setTimeout(() => {
+    controller.abort();
+  }, 2500);
+
+  try {
+    const response = await fetch(fullUrl, { signal: controller.signal });
+    const text = await response.text();
+    if (response.ok) {
+      console.debug("Hook registered - response from hook/create:", text);
     } else {
-      console.log("Hook registration failed - response from hook/create:", body);
-      // if FOREVER, then keep trying to register the hook
-      // every 3s until it works - else exit with code 1
-      if (FOREVER) {
-        console.log("Trying again in 3s...");
-        setTimeout(registerHook, 3000);
-      } else {
-        shutdown(1);
-      }
+      throw new Error(text);
     }
-  });
+  } catch (error) {
+    console.error("Hook registration failed - response from hook/create:", error);
+    // if FOREVER, then keep trying to register the hook
+    // every 3s until it works - else exit with code 1
+    if (FOREVER) {
+      console.log("Trying again in 3s...");
+      setTimeout(registerHook, 3000);
+    } else {
+      shutdown(1);
+    }
+  } finally {
+    clearTimeout(abortTimeout);
+  }
 };
 
 process.on('SIGINT', () => shutdown(0));
