@@ -27,8 +27,9 @@ class StorageItem {
     ...appOptions
   }) {
     this.client = client;
-    this.prefix = prefix;
-    this.setId = setId;
+    // Prefix and setId must be strings - convert
+    this.prefix = typeof prefix !== 'string' ? prefix.toString() : prefix;
+    this.setId = typeof setId !== 'string' ? setId.toString() : setId;
     this.id = id;
     this.alias = alias;
     this.payload = payload;
