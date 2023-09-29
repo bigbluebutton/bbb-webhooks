@@ -23,6 +23,7 @@ export default class WebhooksEvent {
     "user-presenter-assigned",
     "user-presenter-unassigned",
     "user-emoji-changed",
+    "user-raise-hand-changed",
     "chat-group-message-sent",
     "rap-published",
     "rap-unpublished",
@@ -67,6 +68,8 @@ export default class WebhooksEvent {
       "UserBroadcastCamStoppedEvtMsg",
       "UserEmojiChangedEvtMsg",
       "UserReactionEmojiChangedEvtMsg",
+      // 2.7+
+      "UserRaiseHandChangedEvtMsg",
     ],
     CHAT_EVENTS: [
       "GroupChatMessageBroadcastEvtMsg",
@@ -215,6 +218,22 @@ export default class WebhooksEvent {
     }
   }
 
+  handleUserEmojiChanged(message) {
+    try {
+      // < 2.7 => UserEmojiChangedEvtMsg also bundles the raiseHand action as an emoji
+      // >= 2.7 => UserEmojiChangedEvtMsg and UserRaiseHandChangedEvtMsg are separate events
+      //           and the raiseHand action is not bundled as an emoji anymore
+      const { body } = message.core;
+      const emoji = body.emoji || body.reactionEmoji;
+
+      if (emoji && emoji === "raiseHand") return "user-raise-hand-changed";
+      return "user-emoji-changed";
+    } catch (error) {
+      logger.error('error handling user emoji changed', error);
+      return "user-emoji-changed";
+    }
+  }
+
   // Map internal to external message for user information
   userTemplate(messageObj) {
     const msgBody = messageObj.core.body;
@@ -244,17 +263,30 @@ export default class WebhooksEvent {
         }
       }
     };
-    if (this.outputEvent.data["id"] === "user-audio-voice-enabled") {
-      this.outputEvent.data["attributes"]["user"]["listening-only"] = msgBody.listenOnly;
-      this.outputEvent.data["attributes"]["user"]["sharing-mic"] = ! msgBody.listenOnly;
-    } else if (this.outputEvent.data["id"] === "user-audio-voice-disabled") {
-      this.outputEvent.data["attributes"]["user"]["listening-only"] = false;
-      this.outputEvent.data["attributes"]["user"]["sharing-mic"] = false;
-    } else if (this.outputEvent.data["id"] === "user-emoji-changed") {
-      const emoji = msgBody.emoji || msgBody.reactionEmoji;
-      if (emoji && emoji !== "none") {
+
+    // Refactor the if-else chain down there to a switch case block
+    switch (this.outputEvent.data.id) {
+      case "user-audio-voice-enabled":
+        this.outputEvent.data["attributes"]["user"]["listening-only"] = msgBody.listenOnly;
+        this.outputEvent.data["attributes"]["user"]["sharing-mic"] = !msgBody.listenOnly;
+        break;
+      case "user-audio-voice-disabled":
+        this.outputEvent.data["attributes"]["user"]["listening-only"] = false;
+        this.outputEvent.data["attributes"]["user"]["sharing-mic"] = false;
+        break;
+      case "user-emoji-changed": {
+        const emoji = msgBody.emoji || msgBody.reactionEmoji || "none";
         this.outputEvent.data["attributes"]["user"]["emoji"] = emoji;
+        break;
       }
+      case "user-raise-hand-changed": {
+        const emoji = msgBody.emoji || msgBody.reactionEmoji;
+        const raiseHand = msgBody.raiseHand || emoji === "raiseHand";
+        this.outputEvent.data["attributes"]["user"]["raise-hand"] = raiseHand;
+        break;
+      }
+      default:
+        break;
     }
   }
 
@@ -465,8 +497,8 @@ export default class WebhooksEvent {
       case "PresenterAssignedEvtMsg": return "user-presenter-assigned";
       case "PresenterUnassignedEvtMsg": return "user-presenter-unassigned";
       case "UserEmojiChangedEvtMsg":
-      case "UserReactionEmojiChangedEvtMsg":
-        return "user-emoji-changed";
+      case "UserReactionEmojiChangedEvtMsg": return this.handleUserEmojiChanged(message);
+      case "UserRaiseHandChangedEvtMsg": return "user-raise-hand-changed";
       case "GroupChatMessageBroadcastEvtMsg": return "chat-group-message-sent";
       case "PublishedRecordingSysMsg": return "rap-published";
       case "UnpublishedRecordingSysMsg": return "rap-unpublished";
