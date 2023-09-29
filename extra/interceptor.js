@@ -14,6 +14,7 @@ const port = process.env.PORT || 3006;
 const sharedSecret = process.env.SHARED_SECRET || eject("SHARED_SECRET not set");
 const catcherDomain = process.env.CATCHER_DOMAIN || eject("CATCHER_DOMAIN not set");
 const bbbDomain = process.env.BBB_DOMAIN || eject("BBB_DOMAIN not set");
+const FOREVER = (process.env.FOREVER && process.env.FOREVER === 'true') || false;
 let server = null;
 
 const encodeForUrl = (value) => {
@@ -63,16 +64,25 @@ const requestOptions = {
   method: "GET"
 }
 console.log("Registering a hook with", fullUrl);
-request(requestOptions, (error, response, body) => {
-  const statusCode = response?.statusCode;
-  // consider 401 as success, because the callback worked but was denied by the recipient
-  if (statusCode >= 200 && statusCode < 300) {
-    console.debug("Hook registed - response from hook/create:", body);
-  } else {
-    console.log("Hook registration failed - response from hook/create:", body);
-    shutdown(1);
-  }
-});
+const registerHook = () => {
+  request(requestOptions, (error, response, body) => {
+    const statusCode = response?.statusCode;
+    // consider 401 as success, because the callback worked but was denied by the recipient
+    if (statusCode >= 200 && statusCode < 300) {
+      console.debug("Hook registered - response from hook/create:", body);
+    } else {
+      console.log("Hook registration failed - response from hook/create:", body);
+      // if FOREVER, then keep trying to register the hook
+      // every 3s until it works - else exit with code 1
+      if (FOREVER) {
+        console.log("Trying again in 3s...");
+        setTimeout(registerHook, 3000);
+      } else {
+        shutdown(1);
+      }
+    }
+  });
+};
 
 process.on('SIGINT', () => shutdown(0));
 process.on('SIGTERM', () => shutdown(0));
@@ -84,3 +94,5 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('unhandledRejection:', reason, promise);
   shutdown(1);
 });
+
+registerHook();
