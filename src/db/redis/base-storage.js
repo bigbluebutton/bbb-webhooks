@@ -182,6 +182,7 @@ class StorageCompartmentKV {
         return this.localStorage[internal] && this.localStorage[internal]?.payload[field] === value;
       }).map(internal => {
         let mapping = this.localStorage[internal];
+
         if (mapping.payload[field] === value) {
           return mapping.destroy()
             .then(() => {

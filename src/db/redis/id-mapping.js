@@ -86,8 +86,13 @@ class IDMappingCompartment extends StorageCompartmentKV {
     if (toRemove && toRemove.length > 0) {
       this.logger.info(`expiring the mappings: ${toRemove.map(map => map.print())}`);
       toRemove.forEach(mapping => {
-        UserMapping.removeMappingMeetingId(mapping.internalMeetingID);
-        mapping.destroy()
+        UserMapping.get().removeMappingWithMeetingId(mapping.payload.internalMeetingID).catch((error) => {
+          this.logger.error(`error removing user mapping for ${mapping.payload.internalMeetingID}`, error);
+        }).finally(() => {
+          this.destroy(mapping.id).catch((error) => {
+            this.logger.error(`error removing mapping for ${mapping.id}`, error);
+          });
+        });
       });
     }
   }
