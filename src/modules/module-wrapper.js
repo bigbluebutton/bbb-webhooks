@@ -1,8 +1,9 @@
 'use strict';
 
+import EventEmitter from 'events';
 import { newLogger } from '../common/logger.js';
 import { MODULE_TYPES, validateModuleDefinition } from './definitions.js';
-import { createQueue, getQueue } from './queue.js';
+import { createQueue, getQueue, deleteQueue } from './queue.js';
 
 //  [MODULE_TYPES.INPUT]: {
 //    load: 'function',
@@ -23,12 +24,13 @@ import { createQueue, getQueue } from './queue.js';
 //    delete: 'function',
 //  },
 
-export default class ModuleWrapper {
+export default class ModuleWrapper extends EventEmitter {
   static _defaultCollector () {
     throw new Error('Collector not set');
   }
 
   constructor (name, type, context, config = {}) {
+    super();
     this.name = name;
     this.type = type;
     this.id = `${name}-${type}`;
@@ -38,6 +40,8 @@ export default class ModuleWrapper {
     this.logger.debug(`created module wrapper for ${name}`, { type, config });
 
     this._module = null;
+    this._queue = null;
+    this._worker = null;
   }
 
   set config(config) {
@@ -82,12 +86,16 @@ export default class ModuleWrapper {
     return this._module?.type || this._type;
   }
 
+  _getQueueId() {
+    return this.config.queue.id || `${this.name}-out-queue`;
+  }
+
   _setupOutboundQueues() {
     if (this.type !== MODULE_TYPES.out) return;
 
     if (this.config.queue.enabled) {
       this.logger.debug(`setting up outbound queues for module ${this.name}`, this.config.queue);
-      const queueId = this.config.queue.id || `${this.name}-out-queue`;
+      const queueId = this._getQueueId();
       const processor = async (job) => {
         if (job.name !== 'event') {
           this.logger.error(`job ${job.name}:${job.id} is not an event`);
@@ -96,13 +104,26 @@ export default class ModuleWrapper {
         const { event, raw } = job.data;
         await this._onEvent(event, raw);
       };
+
       const { queue, worker } = createQueue(queueId, processor, {
         host: this.config.queue.host,
         port: this.config.queue.port,
         password: this.config.queue.password,
         concurrency: this.config.queue.concurrency || 1,
+        limiter: this.config.queue.limiter || undefined,
       });
 
+      this._queue = queue;
+      this._worker = worker;
+      this._worker.on('failed', (job, error) => {
+        if (job.name !== 'event') {
+          this.logger.error(`job ${job.name}:${job.id} failed`, error);
+          this.emit('eventDispatchFailed', { event: job.data?.event, raw: job.data?.raw, error });
+        }
+      });
+      this._worker.on('error', (error) => {
+        this.logger.error(`worker for queue ${queueId} received error`, error);
+      });
       this.logger.info(`created queue ${queueId} for module ${this.name}`, {
         queueId,
         queueConcurrency: this.config.queue.concurrency || 1,
@@ -177,6 +198,11 @@ export default class ModuleWrapper {
   }
 
   unload() {
+    this.removeAllListeners();
+    this._worker = null;
+    this._queue = null;
+    deleteQueue(this._getQueueId());
+
     if (this._module?.unload) {
       return this._module.unload();
     }
@@ -206,11 +232,11 @@ export default class ModuleWrapper {
     }
 
     if (this.config.queue.enabled) {
-      const queueId = this.config.queue.id || `${this.name}-out-queue`;
+      const queueId = this._getQueueId();
       const { queue } = getQueue(queueId);
-      const job = await queue.add('event', { event, raw });
+      await queue.add('event', { event, raw });
     } else {
-      return this._onEvent(event, raw);
+      await this._onEvent(event, raw);
     }
   }
 }

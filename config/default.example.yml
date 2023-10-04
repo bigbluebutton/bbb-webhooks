@@ -3,6 +3,12 @@ log:
   filename: /var/log/bigbluebutton/bbb-webhooks.log
   stdout: true
 
+prometheus:
+  enabled: false
+  port: 3004
+  path: /metrics
+  collectDefaultMetrics: false
+
 # Shared secret of your BigBlueButton server.
 bbb:
   serverDomain: myserver.com
