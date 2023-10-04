@@ -8,7 +8,8 @@
     "dev-start": "nodemon --watch src --ext js,json,yml,yaml --exec node app.js",
     "test": "ALLOW_CONFIG_MUTATIONS=true mocha",
     "lint": "./node_modules/.bin/eslint ./",
-    "lint:file": "./node_modules/.bin/eslint"
+    "lint:file": "./node_modules/.bin/eslint",
+    "jsdoc": "./node_modules/.bin/jsdoc app.js application.js src/ -r"
   },
   "keywords": [
     "bigbluebutton",

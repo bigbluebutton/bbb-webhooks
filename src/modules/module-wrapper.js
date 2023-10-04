@@ -24,11 +24,32 @@ import { createQueue, getQueue, deleteQueue } from './queue.js';
 //    delete: 'function',
 //  },
 
-export default class ModuleWrapper extends EventEmitter {
+/**
+ * ModuleWrapper.
+ * @augments {EventEmitter}
+ * @class
+ */
+class ModuleWrapper extends EventEmitter {
+  /**
+   * _defaultCollector - Default event colletion function.
+   * @static
+   * @private
+   * @throws {Error} - Error thrown if the default collector is called
+   * @memberof ModuleWrapper
+   */
   static _defaultCollector () {
     throw new Error('Collector not set');
   }
 
+  /**
+   * constructor.
+   * @param {string} name - Module name
+   * @param {string} type - Module type
+   * @param {Context} context - Context object
+   * @param {object} config - Module-specific configuration
+   * @constructs ModuleWrapper
+   * @augments {EventEmitter}
+   */
   constructor (name, type, context, config = {}) {
     super();
     this.name = name;
@@ -86,10 +107,22 @@ export default class ModuleWrapper extends EventEmitter {
     return this._module?.type || this._type;
   }
 
+  /**
+   * _getQueueId - Get the queue ID for the module.
+   * @private
+   * @returns {string} - Queue ID
+   * @memberof ModuleWrapper
+   */
   _getQueueId() {
     return this.config.queue.id || `${this.name}-out-queue`;
   }
 
+  /**
+   * _setupOutboundQueues - Setup outbound queues for the module only if the
+   *                        module is an output module and the queue is enabled.
+   * @private
+   * @memberof ModuleWrapper
+   */
   _setupOutboundQueues() {
     if (this.type !== MODULE_TYPES.out) return;
 
@@ -131,6 +164,12 @@ export default class ModuleWrapper extends EventEmitter {
     }
   }
 
+  /**
+   * _bootstrap - Initialize the necessary data for the module's creation
+   * @private
+   * @returns {Promise} - Promise object
+   * @memberof ModuleWrapper
+   */
   _bootstrap() {
     if (!this._module) {
       throw new Error(`module ${this.name} is not loaded`);
@@ -153,6 +192,14 @@ export default class ModuleWrapper extends EventEmitter {
     }
   }
 
+  /**
+   * setCollector - Set the event collector function for input modules.
+   *                This function MUST be called by the module when it wants
+   *                to send an event to the event processor.
+   * @param {Function} collector - Event collector function
+   * @throws {Error} - Error thrown if the module does not support setCollector
+   * @memberof ModuleWrapper
+   */
   setCollector(collector) {
     if (typeof collector !== 'function') {
       throw new Error(`collector must be a function`);
@@ -165,6 +212,13 @@ export default class ModuleWrapper extends EventEmitter {
     }
   }
 
+  /**
+   * load - Load the module.
+   * @returns {Promise} - Promise object that resolves to the module wrapper
+   * @async
+   * @memberof ModuleWrapper
+   * @throws {Error} - Error thrown if the module cannot be loaded
+   */
   async load() {
     // Dynamically import the module provided via this.name
     // and instantiate it with the context and config provided
@@ -197,6 +251,12 @@ export default class ModuleWrapper extends EventEmitter {
     return this;
   }
 
+  /**
+   * unload - Unload the module.
+   * @returns {Promise} - Promise object
+   * @async
+   * @memberof ModuleWrapper
+   */
   unload() {
     this.removeAllListeners();
     this._worker = null;
@@ -210,6 +270,13 @@ export default class ModuleWrapper extends EventEmitter {
     return Promise.resolve();
   }
 
+  /**
+   * setContext - Set the context for the module.
+   * @param {Context} context - Context object
+   * @throws {Error} - Error thrown if the module does not support setContext
+   * @memberof ModuleWrapper
+   * @returns {Promise} - Promise object
+   */
   setContext(context) {
     if (this._module?.setContext) {
       return this._module.setContext(context);
@@ -226,6 +293,16 @@ export default class ModuleWrapper extends EventEmitter {
     throw new Error("Not implemented");
   }
 
+  /**
+   * _onEvent - Event handler middleware for output modules.
+   *            Catches events dispatched by the event processor and
+   *            forwards them to the module's onEvent() method.
+   * @param {object} event - Event object in the format of a WebhooksEvent object
+   * @param {object} raw - Raw event object
+   * @memberof ModuleWrapper
+   * @returns {Promise} - Promise object
+   * @throws {Error} - Error thrown if the module does not support onEvent
+   */
   async onEvent(event, raw) {
     if (this.type !== MODULE_TYPES.out) {
       throw new Error(`module ${this.name} is not an output module`);
@@ -240,3 +317,5 @@ export default class ModuleWrapper extends EventEmitter {
     }
   }
 }
+
+export default ModuleWrapper;
