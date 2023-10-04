@@ -12,6 +12,12 @@ log:
   filename: LOG_FILE
   stdout: LOG_STDOUT
 
+prometheus:
+  enabled: PROM_ENABLED
+  port: PROM_PORT
+  path: PROM_PATH
+  collectDefaultMetrics: PROM_COLLECT_DEFAULT_METRICS
+
 mappings:
   timeout: MAPPINGS_TIMEOUT
 

@@ -3,6 +3,7 @@ import { newLogger } from '../common/logger.js';
 import WebhooksEvent from '../process/event.js';
 import UserMapping from '../db/redis/user-mapping.js';
 import Utils from '../common/utils.js';
+import Metrics from '../metrics/index.js';
 
 const Logger = newLogger('event-processor');
 
@@ -17,6 +18,24 @@ export default class EventProcessor {
   ) {
     this.inputs = inputs;
     this.outputs = outputs;
+
+    this._exporter = Metrics.getExporter();
+  }
+
+  _trackModuleEvents() {
+    this.outputs.forEach((output) => {
+      output.on('eventDispatchFailed', ({ event, raw, error }) => {
+        Logger.error('error notifying output module', {
+          error: error.stack,
+          event,
+          raw,
+        });
+        this._exporter.increment(Metrics.METRIC_NAMES.EVENT_DISPATCH_FAILURES, {
+          outputEventId: event?.data?.id || 'unknown',
+          module: output.name,
+        });
+      });
+    });
   }
 
   start() {
@@ -110,10 +129,11 @@ export default class EventProcessor {
         }
       }
     } catch (error) {
-      Logger.error(`error processing event: ${error}`, {
+      Logger.error('error processing event', {
         error: error.stack,
         event,
       });
+      this._exporter.increment(Metrics.METRIC_NAMES.EVENT_PROCESS_FAILURES);
     }
   }
 
@@ -126,7 +146,17 @@ export default class EventProcessor {
     }
 
     this.outputs.forEach((output) => {
-      output.onEvent(message, raw);
+      output.onEvent(message, raw).catch((error) => {
+        Logger.error('error notifying output module', {
+          error: error.stack,
+          event: message,
+          raw,
+        });
+        this._exporter.increment(Metrics.METRIC_NAMES.EVENT_DISPATCH_FAILURES, {
+          outputEventId: message?.data?.id || 'unknown',
+          module: output.name,
+        });
+      });
     });
   }
 }
