@@ -446,6 +446,7 @@ export default class WebhooksEvent {
       header,
     } = messageObj.core;
     const extId = UserMapping.get().getExternalUserID(header.userId) || body.extId || "";
+    const pollId = body.pollId || body.poll?.id;
 
     this.outputEvent = {
       data: {
@@ -461,7 +462,7 @@ export default class WebhooksEvent {
             "external-user-id": extId,
           },
           poll: {
-            "id": body.pollId
+            "id": pollId,
           }
         },
         event: {
@@ -472,6 +473,7 @@ export default class WebhooksEvent {
 
     if (this.outputEvent.data.id === "poll-started") {
       this.outputEvent.data.attributes.poll = {
+        ...this.outputEvent.data.attributes.poll,
         question: body.question,
         answers: body.poll.answers,
       };

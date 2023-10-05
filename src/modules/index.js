@@ -11,6 +11,12 @@ import {
 } from './definitions.js';
 
 const UNEXPECTED_TERMINATION_SIGNALS = ['SIGABRT', 'SIGBUS', 'SIGSEGV', 'SIGILL'];
+const REDIS_CONF = {
+  host: config.get('redis.host'),
+  port: config.get('redis.port'),
+  password: config.has('redis.password') ? config.get('redis.password') : undefined,
+}
+REDIS_CONF.REDIS_URL = `redis://${REDIS_CONF.password ? `:${REDIS_CONF.password}@` : ''}${REDIS_CONF.host}:${REDIS_CONF.port}`;
 const BASE_CONFIGURATION = {
   server: {
     domain: config.get('bbb.serverDomain'),
@@ -18,9 +24,10 @@ const BASE_CONFIGURATION = {
     auth2_0: config.get('bbb.auth2_0'),
   },
   redis: {
-    host: config.get('redis.host'),
-    port: config.get('redis.port'),
-    password: config.has('redis.password') ? config.get('redis.password') : undefined,
+    host: REDIS_CONF.host,
+    port: REDIS_CONF.port,
+    password: REDIS_CONF.password,
+    url: REDIS_CONF.REDIS_URL,
   },
 }
 
