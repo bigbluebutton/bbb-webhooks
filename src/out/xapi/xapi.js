@@ -58,7 +58,8 @@ export default class XAPI {
 
         // if meeting-created event, set meeting_data on redis
         if (event.data.id == 'meeting-created') {
-            meeting_data.bbb_origin_server_name = event.data.attributes.meeting.metadata['bbb-origin-server-name'];
+            const serverDomain = this.config.server.domain;
+            meeting_data.bbb_origin_server_name = serverDomain;
             meeting_data.planned_duration = event.data.attributes.meeting.duration;
             meeting_data.create_time = event.data.attributes.meeting['create-time'];
             meeting_data.meeting_name = event.data.attributes.meeting.name;
