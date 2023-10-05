@@ -1,5 +1,5 @@
 import XAPI from './xapi.js';
-import XAPICompartment from './compartment.js';
+import {meetingCompartment, userCompartment, pollCompartment} from './compartment.js';
 import redis from 'redis';
 import config from 'config';
 /*
@@ -47,13 +47,25 @@ export default class OutXAPI {
 
       this.logger.debug('OutXAPI.onEvent:', this.config );
 
-      this.meetingStorage = new XAPICompartment(
+      this.meetingStorage = new meetingCompartment(
         this.redisClient,
         this.config.redis.keys.meetingPrefix,
         this.config.redis.keys.meetings
       );
 
-      this.xAPI = new XAPI(this.context, this.config, this.meetingStorage);
+      this.userStorage = new userCompartment(
+        this.redisClient,
+        this.config.redis.keys.userPrefix,
+        this.config.redis.keys.users
+      );
+
+      this.pollStorage = new pollCompartment(
+        this.redisClient,
+        this.config.redis.keys.pollPrefix,
+        this.config.redis.keys.polls
+      );
+
+      this.xAPI = new XAPI(this.context, this.config, this.meetingStorage, this.userStorage, this.pollStorage);
     }
     this.loaded = true;
   }

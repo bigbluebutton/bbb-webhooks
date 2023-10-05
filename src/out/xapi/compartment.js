@@ -1,6 +1,6 @@
 import { StorageCompartmentKV } from '../../db/redis/base-storage.js';
 
-export default class XAPICompartment extends StorageCompartmentKV {
+export class meetingCompartment extends StorageCompartmentKV {
     constructor(client, prefix, setId, options = {}) {
         super(client, prefix, setId, options);
     }
@@ -21,7 +21,23 @@ export default class XAPICompartment extends StorageCompartmentKV {
         const mapping = await this.save(payload, {
             alias: internal_meeting_id,
         });
-        this.logger.info(`added user mapping to the list ${internal_meeting_id}: ${mapping.print()}`);
+        this.logger.info(`added meeting data to the list ${internal_meeting_id}: ${mapping.print()}`);
+
+        return mapping;
+    }
+
+    async addOrUpdateUserData(user_data) {
+        const {internal_user_id, user_name} = user_data;
+
+        const payload = {
+            internal_user_id,
+            user_name,
+        };
+
+        const mapping = await this.save(payload, {
+            alias: internal_user_id,
+        });
+        this.logger.info(`added user data to the list ${internal_user_id}: ${mapping.print()}`);
 
         return mapping;
     }
@@ -33,7 +49,71 @@ export default class XAPICompartment extends StorageCompartmentKV {
 
     // Initializes global methods for this model.
     initialize() {
-        // return this.resync();
+        return;
+    }
+}
+
+export class userCompartment extends StorageCompartmentKV {
+    constructor(client, prefix, setId, options = {}) {
+        super(client, prefix, setId, options);
+    }
+
+    async addOrUpdateUserData(user_data) {
+        const {internal_user_id, user_name} = user_data;
+
+        const payload = {
+            internal_user_id,
+            user_name,
+        };
+
+        const mapping = await this.save(payload, {
+            alias: internal_user_id,
+        });
+        this.logger.info(`added poll data to the list ${internal_user_id}: ${mapping.print()}`);
+
+        return mapping;
+    }
+
+    async getUserData(internal_user_id) {
+        const user_data = this.findByField('internal_user_id', internal_user_id);
+        return (user_data != null ? user_data.payload : undefined);
+    }
+
+    // Initializes global methods for this model.
+    initialize() {
+        return;
+    }
+}
+
+export class pollCompartment extends StorageCompartmentKV {
+    constructor(client, prefix, setId, options = {}) {
+        super(client, prefix, setId, options);
+    }
+
+    async addOrUpdatePollData(poll_data) {
+        const {object_id, question, choices} = poll_data;
+
+        const payload = {
+            object_id,
+            question,
+            choices,
+        };
+
+        const mapping = await this.save(payload, {
+            alias: object_id,
+        });
+        this.logger.info(`added user data to the list ${object_id}: ${mapping.print()}`);
+
+        return mapping;
+    }
+
+    async getPollData(object_id) {
+        const poll_data = this.findByField('object_id', object_id);
+        return (poll_data != null ? poll_data.payload : undefined);
+    }
+
+    // Initializes global methods for this model.
+    initialize() {
         return;
     }
 }
