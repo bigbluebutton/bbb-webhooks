@@ -1,4 +1,4 @@
-import redis from 'redis';
+import { createClient } from 'redis';
 import config from 'config';
 import HookCompartment from './hooks.js';
 import IDMappingC from './id-mapping.js';
@@ -37,12 +37,10 @@ export default class RedisDB {
   }
 
   async load() {
-    const { host, port, password } = this.config;
-
-    this._redisClient = redis.createClient({
-      host,
-      port,
-      password,
+    const { password, host, port } = this.config;
+    const redisUrl = `redis://${password ? `:${password}@` : ''}${host}:${port}`;
+    this._redisClient = createClient({
+      url: redisUrl,
     });
     this._redisClient.on("error", this._onRedisError.bind(this));
     await this._redisClient.connect();

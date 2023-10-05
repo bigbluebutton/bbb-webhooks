@@ -6,6 +6,7 @@ bbb:
 redis:
   host: REDIS_HOST
   port: REDIS_PORT
+  password: REDIS_PASSWORD
 
 log:
   level: LOG_LEVEL
@@ -26,11 +27,13 @@ modules:
     config:
       host: REDIS_HOST
       port: REDIS_PORT
+      password: REDIS_PASSWORD
   ../in/redis/index.js:
     config:
       redis:
         host: REDIS_HOST
         port: REDIS_PORT
+        password: REDIS_PASSWORD
   ../out/webhooks/index.js:
     config:
       api:

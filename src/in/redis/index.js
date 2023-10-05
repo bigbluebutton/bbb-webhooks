@@ -1,4 +1,4 @@
-import redis from 'redis';
+import { createClient } from 'redis';
 import Utils from '../../common/utils.js';
 
 /*
@@ -80,12 +80,11 @@ export default class InRedis {
 
   async load () {
     if (this._validateConfig()) {
-      this.pubsub = redis.createClient({
-        host: this.config.host,
-        port: this.config.port,
-        password: this.config.password,
+      const { password, host, port } = this.config.redis;
+      const redisUrl = `redis://${password ? `:${password}@` : ''}${host}:${port}`;
+      this.pubsub = createClient({
+        url: redisUrl,
       });
-
       await this.pubsub.connect();
       await this._subscribeToEvents();
     }
