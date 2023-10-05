@@ -46,6 +46,8 @@ export default class WebhooksEvent {
     "rap-deleted",
     "rap-post-publish-started",
     "rap-post-publish-ended",
+    "poll-started",
+    "poll-responded",
   ];
 
   static RAW = {
