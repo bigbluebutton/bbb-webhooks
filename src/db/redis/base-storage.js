@@ -2,19 +2,21 @@ import { newLogger } from '../../common/logger.js';
 import { v4 as uuidv4 } from 'uuid';
 import config from 'config';
 
-const stringifyValues = (o) => {
-  Object.keys(o).forEach(k => {
+const stringifyValues = (obj) => {
+  // Deep clone the object so we don't modify the original.
+  const cObj = config.util.cloneDeep(obj);
+  Object.keys(cObj).forEach(k => {
     // Make all values strings, but ignore nullish/undefined values.
-    if (o[k] == null) {
-      delete o[k];
-    } else if (typeof o[k] === 'object') {
-      o[k] = JSON.stringify(stringifyValues(o[k]));
+    if (cObj[k] == null) {
+      delete cObj[k];
+    } else if (typeof cObj[k] === 'object') {
+      cObj[k] = JSON.stringify(stringifyValues(cObj[k]));
     }  else {
-      o[k] = '' + o[k];
+      cObj[k] = '' + cObj[k];
     }
   });
 
-  return o;
+  return cObj;
 }
 
 class StorageItem {
