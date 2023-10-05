@@ -1,5 +1,6 @@
 import { newLogger } from '../../common/logger.js';
 import { v4 as uuidv4 } from 'uuid';
+import config from 'config';
 
 const stringifyValues = (o) => {
   Object.keys(o).forEach(k => {
@@ -32,7 +33,7 @@ class StorageItem {
     this.setId = typeof setId !== 'string' ? setId.toString() : setId;
     this.id = id;
     this.alias = alias;
-    this.payload = payload;
+    this.payload = config.util.cloneDeep(payload);
     if (typeof serializer === 'function') this.serialize = serializer.bind(this);
     if (typeof deserializer === 'function') this.deserialize = deserializer.bind(this);
     this.appOptions = appOptions;
@@ -129,7 +130,6 @@ class StorageCompartmentKV {
   deserialize(data) {
     return data;
   }
-
 
   async save(payload, {
     id = uuidv4(),
