@@ -1,19 +1,32 @@
 import CallbackEmitter from './callback-emitter.js';
 import HookCompartment from '../../db/redis/hooks.js';
 
-// Web hooks will listen for events on redis coming from BigBlueButton and
-// perform HTTP calls with them to all registered hooks.
-export default class WebHooks {
+/**
+ * WebHooks.
+ * @class
+ * @classdesc Relays incoming events to registered webhook URLs.
+ * @property {Context} context - This module's context as provided by the main application.
+ * @property {BbbWebhooksLogger} logger - The logger.
+ * @property {object} config - This module's configuration object.
+ */
+class WebHooks {
+  /**
+   * constructor.
+   * @param {Context} context - This module's context as provided by the main application.
+   * @param {object} config - This module's configuration object.
+   */
   constructor(context, config) {
     this.context = context;
     this.logger = context.getLogger();
     this.config = config;
   }
 
-  start() {
-    return Promise.resolve();
-  }
-
+  /**
+   * _processRaw - Dispatch raw events to hooks that expect raw data.
+   * @param {object} event - A raw event to be dispatched.
+   * @returns {Promise} - A promise that resolves when all hooks have been notified.
+   * @private
+   */
   _processRaw(event) {
     let meetingID;
     let hooks = HookCompartment.get().allGlobalSync();
@@ -43,6 +56,12 @@ export default class WebHooks {
     return Promise.resolve();
   }
 
+  /**
+   * _extractIntMeetingID - Extract the internal meeting ID from mapped or raw events.
+   * @param {object} message - A mapped or raw event object.
+   * @returns {string} - The internal meeting ID.
+   * @private
+   */
   _extractIntMeetingID(message) {
     // Webhooks events
     return message?.data?.attributes?.meeting["internal-meeting-id"]
@@ -53,22 +72,39 @@ export default class WebHooks {
       || message?.core?.body?.meetingId;
   }
 
+  /**
+   * _extractExternalMeetingID - Extract the external meeting ID from a mapped event.
+   * @param {object} message - A mapped event object.
+   * @returns {string} - The external meeting ID.
+   * @private
+   */
   _extractExternalMeetingID(message) {
     return message?.data?.attributes?.meeting["external-meeting-id"];
   }
 
+  /**
+   * dispatch - Dispatch an event to the target hook.
+   * @param {object} event - The event to be dispatched (raw or mapped)
+   * @param {StorageItem} hook - The hook to which the event should be dispatched
+   *                      (as a StorageItem object).
+   *                      The event will *not* be dispatched if the hook is invalid,
+   *                      or if the event is not in the list of events to be sent
+   *                      for that hook.
+   * @returns {Promise} - A promise that resolves when the event has been dispatched.
+   * @public
+   * @async
+   */
   dispatch(event, hook) {
     return new Promise((resolve, reject) => {
-    if (event == null) return;
-
+      // Check for an invalid event - skip if that's the case
+      if (event == null) return;
+      // CHeck if the event is in the list of events to be sent (if list was specified)
       if (hook.payload.eventID != null
-        && (event == null
-          || event.data == null
-          || event.data.id == null
+        && (event?.data?.id == null
           || (!hook.payload.eventID.some((ev) => ev == event.data.id.toLowerCase())))
       ) {
-        this.logger.info(`${hook.payload.callbackURL} skipping event because not in event list for hook: ${JSON.stringify(event)}`);
-        return ;
+        this.logger.info(`${hook.payload.callbackURL} skipping event because not in event list`, { eventID: event.data.id });
+        return;
       }
 
       const emitter = new CallbackEmitter(
@@ -85,15 +121,29 @@ export default class WebHooks {
       );
 
       emitter.start();
-      emitter.on("success", resolve);
-      emitter.once("stopped", () => {
+      emitter.on(CallbackEmitter.EVENTS.SUCCESS, () => {
+        this.logger.info(`successfully dispatched to ${hook.payload.callbackURL}`);
+        emitter.stop();
+        return resolve();
+      });
+      emitter.once(CallbackEmitter.EVENTS.STOPPED, () => {
         this.logger.warn(`too many failed attempts to perform a callback call, removing the hook for: ${hook.payload.callbackURL}`);
+        emitter.stop();
         // TODO just disable
         return hook.destroy().then(resolve).catch(reject);
       });
     });
   }
 
+  /**
+   * onEvent - Handles incoming events received by the main application (relayed
+   *           from this module's entrypoint, OutWebHooks).
+   * @param {object} event - A mapped webhook event object.
+   * @param {object} raw - A raw webhook event object.
+   * @returns {Promise} - A promise that resolves when all hooks have been notified.
+   * @public
+   * @async
+   */
   onEvent(event, raw) {
     let hooks = HookCompartment.get().allGlobalSync();
     // filter the hooks that need to receive this event
@@ -127,3 +177,4 @@ export default class WebHooks {
     });
   }
 }
+export default WebHooks;

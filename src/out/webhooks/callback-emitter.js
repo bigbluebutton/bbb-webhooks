@@ -1,20 +1,16 @@
 import url from 'url';
 import { EventEmitter } from 'node:events';
-import { newLogger } from '../../common/logger.js';
 import Utils from '../../common/utils.js';
 import fetch from 'node-fetch';
 
-const Logger = newLogger('callback-emitter');
-
 // A simple string that identifies the event
-const simplifiedEvent = (event) => {
-  if (event.event != null) {
-    event = event.event
-  }
+const simplifiedEvent = (_event) => {
+  let event = _event.event ? _event.event : _event;
+
   try {
-    const eventJs = JSON.parse(event);
-    return `event: { name: ${(eventJs.data != null ? eventJs.data.id : undefined)}, timestamp: ${(eventJs.data.event != null ? eventJs.data.event.ts : undefined)} }`;
-  } catch (e) {
+    const parsedEvent = JSON.parse(event);
+    return `event: { name: ${parsedEvent?.data?.id}, timestamp: ${(parsedEvent?.data?.event?.ts)} }`;
+  } catch (error) {
     return `event: ${event}`;
   }
 };
@@ -25,7 +21,28 @@ const simplifiedEvent = (event) => {
 // Emits "success" on success, "failure" on error and "stopped" when gave up trying
 // to perform the callback.
 export default class CallbackEmitter extends EventEmitter {
-  constructor(callbackURL, event, permanent, domain, options = {}) {
+  static EVENTS = {
+    // The callback was successfully emitted
+    SUCCESS: "success",
+    // The callback could not be emitted
+    FAILURE: "failure",
+    // The callback could not be emitted and we gave up trying
+    STOPPED: "stopped",
+  };
+
+  constructor(
+    callbackURL,
+    event,
+    permanent,
+    domain, {
+      secret,
+      auth2_0,
+      requestTimeout,
+      retryIntervals,
+      permanentIntervalReset,
+      logger = console,
+    } = {},
+  ) {
     super();
     this.callbackURL = callbackURL;
     this.event = event;
@@ -33,7 +50,7 @@ export default class CallbackEmitter extends EventEmitter {
     this.nextInterval = 0;
     this.timestamp = 0;
     this.permanent = permanent;
-    this._serverDomain = domain;
+    this.logger = logger;
 
     if (callbackURL == null
       || event == null
@@ -42,12 +59,14 @@ export default class CallbackEmitter extends EventEmitter {
       throw new Error("missing parameters");
     }
 
-    this._permanentIntervalReset = options.permanentIntervalReset || 8;
-    this._secret = options.secret;
-    this._bearerAuth = options.auth2_0;
+    this._dispatched = false;
+    this._permanentIntervalReset = permanentIntervalReset || 8;
+    this._serverDomain = domain;
+    this._secret = secret;
+    this._bearerAuth = auth2_0;
     if (this._bearerAuth && this._secret == null) throw new Error("missing secret");
-    this._requestTimeout = options.requestTimeout;
-    this._retryIntervals = options.retryIntervals || [
+    this._requestTimeout = requestTimeout;
+    this._retryIntervals = retryIntervals || [
       1000,
       2000,
       5000,
@@ -56,24 +75,20 @@ export default class CallbackEmitter extends EventEmitter {
     ];
   }
 
-  start() {
-    this.timestamp = new Date().getTime();
-    this.nextInterval = 0;
-    this._scheduleNext(0);
-  }
-
   _scheduleNext(timeout) {
-    setTimeout(async () => {
+    this._clearDispatcher();
+    this._dispatcher = setTimeout(async () => {
       try {
-        await this._emitMessage();
-        this.emit("success");
+        await this._dispatch();
+        this._dispatched = true;
+        this.emit(CallbackEmitter.EVENTS.SUCCESS);
       } catch (error) {
-        this.emit("failure", error);
+        this.emit(CallbackEmitter.EVENTS.FAILURE, error);
         // get the next interval we have to wait and schedule a new try
         const interval = this._retryIntervals[this.nextInterval];
 
         if (interval != null) {
-          Logger.warn(`trying the callback again in ${interval/1000.0} secs: ${this.callbackURL}`);
+          this.logger.warn(`trying the callback again in ${interval/1000.0} secs: ${this.callbackURL}`);
           this.nextInterval++;
           this._scheduleNext(interval);
           // no intervals anymore, time to give up
@@ -83,28 +98,27 @@ export default class CallbackEmitter extends EventEmitter {
           if (this.permanent){
             this._scheduleNext(this.nextInterval);
           } else {
-            this.emit("stopped");
+            this.emit(CallbackEmitter.EVENTS.STOPPED);
           }
         }
       }
     }, timeout);
   }
 
-  async _emitMessage() {
-    let data, requestOptions, callbackURL;
+  async _dispatch() {
+    let callbackURL;
     const serverDomain = this._serverDomain;
     const sharedSecret = this._secret;
     const bearerAuth = this._bearerAuth;
     const timeout = this._requestTimeout;
 
-    // data to be sent
     // note: keep keys in alphabetical order
-    data = new URLSearchParams({
+    const data = new URLSearchParams({
+      domain: serverDomain,
       event: "[" + this.message + "]",
       timestamp: this.timestamp,
-      domain: serverDomain
     });
-    requestOptions = {
+    const requestOptions = {
       method: "POST",
       body: data,
       redirect: 'follow',
@@ -128,36 +142,54 @@ export default class CallbackEmitter extends EventEmitter {
         callbackURL += Utils.isEmpty(urlObj.search) ? "?" : "&";
         callbackURL += `checksum=${checksum}`;
       } catch (error) {
-        Logger.error(`error parsing callback URL: ${this.callbackURL}`);
+        this.logger.error(`error parsing callback URL: ${this.callbackURL}`);
         throw error;
       }
     }
 
-    const responseFailed = (response) => {
-      // consider 401 as success, because the callback worked but was denied by the recipient
-      return !(response.ok || response.status == 401)
-    };
-
+    // consider 401 as success, because the callback worked but was denied by the recipient
+    const responseFailed = (response) => !(response.ok || response.status == 401);
     const controller = new AbortController();
     const abortTimeout = setTimeout(() => {
       controller.abort();
     }, timeout);
     requestOptions.signal = controller.signal;
+    const stringifiedEvent = simplifiedEvent(data);
 
     try {
       const response = await fetch(callbackURL, requestOptions);
 
       if (responseFailed(response)) {
-        Logger.warn(`error in the callback call to: [${callbackURL}] for ${simplifiedEvent(data)} status: ${response != null ? response.status: undefined}`);
+        this.logger.warn(`error in the callback call to: [${callbackURL}] for ${stringifiedEvent} status: ${response != null ? response.status: undefined}`);
         throw new Error(response.statusText);
-      } else {
-        Logger.info(`successful callback call to: [${callbackURL}] for ${simplifiedEvent(data)}`);
       }
+
+      this.logger.info(`successful callback call to: [${callbackURL}] for ${stringifiedEvent}`);
     } catch (error) {
-      Logger.warn(`error in the callback call to: [${callbackURL}] for ${simplifiedEvent(data)}`, error);
+      this.logger.warn(`error in the callback call to: [${callbackURL}] for ${stringifiedEvent}`, error);
       throw error;
     } finally {
       clearTimeout(abortTimeout);
     }
+  }
+
+  _clearDispatcher() {
+    if (this._dispatcher != null) {
+      clearTimeout(this._dispatcher);
+      this._dispatcher = null;
+    }
+  }
+
+  start() {
+    this.timestamp = new Date().getTime();
+    this.nextInterval = 0;
+    this._scheduleNext(0);
+  }
+
+  stop() {
+    this._clearDispatcher();
+    if (!this._dispatched) this.emit(CallbackEmitter.EVENTS.STOPPED);
+
+    this.removeAllListeners();
   }
 }
