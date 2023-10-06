@@ -2,6 +2,7 @@
 
 import { addColors, format, createLogger, transports } from 'winston';
 import config from 'config';
+// jsonStringify is an extraneous dependency from Winston
 import jsonStringify from 'safe-stable-stringify';
 
 const LOG_CONFIG = config.get('log') || {};
@@ -104,6 +105,18 @@ const _newLogger = ({
   stdout,
 }) => {
   const loggingTransports = [];
+
+  if (filename) {
+    loggingTransports.push(new transports.File({
+      filename,
+      format: combine(
+        timestamp(),
+        splat(),
+        errors({ stack: true }),
+        json(),
+      )
+    }));
+  }
 
   if (stdout) {
     if (process.env.NODE_ENV !== 'production') {
