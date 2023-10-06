@@ -101,15 +101,21 @@ const getExporter = () => {
 }
 
 /**
- * Exporter module for bbb-webhooks.
  * @module exporter
+ * @typedef {object} MetricsExporter
+ * @property {boolean} METRICS_ENABLED - Whether the exporter is enabled or not
+ * @property {object} METRIC_NAMES - Indexed metric names
+ * @property {object} METRICS - Active metrics dictionary (key: metric name, value: prom-client metric object)
+ * @property {Function} injectMetrics - Inject a new metrics dictionary into the Prometheus agent
+ *                                      Merges with the existing dictionary
+ * @property {Function} getExporter - Get a Prometheus agent instance to use for updating metrics
+ */
+
+/**
+ * Metrics exporter util singleton object.
+ * @type {MetricsExporter}
  * @public
- * @type {object}
- * @property {boolean} METRICS_ENABLED - Whether metrics are enabled or not.
- * @property {object} METRIC_NAMES - Metric names.
- * @property {object} METRICS - Metrics dictionary (key: metric name, value: prom-client metric object)
- * @property {function} injectMetrics - Inject a metrics dictionary into the Prometheus agent.
- * @property {Function} getExporter - Start the Prometheus agent.
+ * @memberof module:exporter
  */
 export default {
   METRICS_ENABLED,

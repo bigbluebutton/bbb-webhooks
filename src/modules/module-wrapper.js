@@ -58,6 +58,7 @@ class ModuleWrapper extends EventEmitter {
     this.context = context;
     this.config = config;
     this.logger = newLogger('module-wrapper');
+    // FIXME This is logging sensitive data, so we need to redact it
     this.logger.debug(`created module wrapper for ${name}`, { type, config });
 
     this._module = null;

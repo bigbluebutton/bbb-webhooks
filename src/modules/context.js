@@ -18,10 +18,13 @@ class Context {
    * @param {string} configuration.name - Submodule name
    * @param {object} configuration.logger - Logger object
    * @param {object} configuration.config - Submodule-specific configuration
+   * @param {object} utils - Utility functions and objects
+   * @param {MetricsExporter} utils.exporter - Metrics exporter
    */
-  constructor(configuration) {
+  constructor(configuration, utils = {}) {
     this.name = configuration.name;
     this.configuration = config.util.cloneDeep(configuration);
+    this.utils = utils;
     this._loggers = new Map();
   }
 
