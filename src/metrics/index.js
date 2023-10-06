@@ -7,7 +7,7 @@ const logger = newLogger('prometheus');
 
 const {
   enabled: METRICS_ENABLED = false,
-  host: METRICS_HOST = 'localhost',
+  host: METRICS_HOST = '127.0.0.1',
   port: METRICS_PORT = '3004',
   path: METRICS_PATH = '/metrics',
   collectDefaultMetrics: COLLECT_DEFAULT_METRICS,
@@ -77,22 +77,22 @@ const buildDefaultMetrics = () => {
  * @public
  */
 const getExporter = () => {
-  if (!METRICS_ENABLED) return null;
   if (AGENT && AGENT.started) return AGENT;
 
-  AGENT = new PrometheusAgent(METRICS_HOST, METRICS_PORT, {
-    path: METRICS_PATH,
-    prefix: PREFIX,
-    collectDefaultMetrics: COLLECT_DEFAULT_METRICS,
-    logger,
-  });
-
-  if (injectMetrics(AGENT, buildDefaultMetrics())) {
-    AGENT.start();
-    return AGENT;
+  if (AGENT == null) {
+    AGENT = new PrometheusAgent(METRICS_HOST, METRICS_PORT, {
+      path: METRICS_PATH,
+      prefix: PREFIX,
+      collectDefaultMetrics: COLLECT_DEFAULT_METRICS,
+      logger,
+    });
   }
 
-  return null;
+  if (METRICS_ENABLED && injectMetrics(AGENT, buildDefaultMetrics())) {
+    AGENT.start();
+  }
+
+  return AGENT;
 }
 
 export default {
