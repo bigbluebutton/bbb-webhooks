@@ -1,6 +1,6 @@
 import config from 'config';
 import PrometheusAgent from './prometheus-agent.js';
-import { Counter } from 'prom-client';
+import { Counter, Gauge } from 'prom-client';
 import { newLogger } from '../common/logger.js';
 
 const logger = newLogger('prometheus');
@@ -44,15 +44,15 @@ const injectMetrics = (agent, metricsDictionary) => {
  * @memberof module:exporter
  */
 const buildDefaultMetrics = () => {
-  if (METRICS == null) {
+  if (METRICS == null || Object.keys(METRICS).length === 0) {
     METRICS = {
-      // TODO to be implemented
-      //[METRIC_NAMES.MODULE_STATUS]: new Gauge({
-      //  name: METRIC_NAMES.MODULE_STATUS,
-      //  help: 'Status of each module',
-      //  labelNames: ['module', 'moduleType'],
-      //}),
+      [METRIC_NAMES.MODULE_STATUS]: new Gauge({
+        name: METRIC_NAMES.MODULE_STATUS,
+        help: 'Status of each module',
+        labelNames: ['module', 'moduleType'],
+      }),
 
+      // TODO to be implemented
       //[METRIC_NAMES.OUTPUT_QUEUE_SIZE]: new Gauge({
       //  name: METRIC_NAMES.OUTPUT_QUEUE_SIZE,
       //  help: 'Event queue size for each output module',
