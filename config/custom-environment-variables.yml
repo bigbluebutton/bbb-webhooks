@@ -15,6 +15,7 @@ log:
 
 prometheus:
   enabled: PROM_ENABLED
+  host: PROM_HOST
   port: PROM_PORT
   path: PROM_PATH
   collectDefaultMetrics: PROM_COLLECT_DEFAULT_METRICS
