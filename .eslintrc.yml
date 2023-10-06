@@ -17,3 +17,5 @@ rules:
   no-multiple-empty-lines: ["warn", { max: 1 }]
   import/no-extraneous-dependencies: "error"
   jsdoc/no-undefined-types: "off"
+  keyword-spacing: ["warn", { before: true, after: true }]
+  indent: ["warn", 2, { "SwitchCase": 1 }]

@@ -9,6 +9,7 @@ import {
   validateModulesConf,
   validateModuleConf
 } from './definitions.js';
+import Exporter from '../metrics/index.js';
 
 const UNEXPECTED_TERMINATION_SIGNALS = ['SIGABRT', 'SIGBUS', 'SIGSEGV', 'SIGILL'];
 const REDIS_CONF = {
@@ -55,9 +56,13 @@ export default class ModuleManager {
     this.logger = newLogger('module-manager');
   }
 
-    _buildContext(configuration) {
+  _buildContext(configuration) {
     configuration.config = { ...BASE_CONFIGURATION, ...configuration.config };
-    return new Context(configuration);
+    const utils = {
+      exporter: Exporter,
+    };
+
+    return new Context(configuration, utils);
   }
 
   getModulesByType(type) {

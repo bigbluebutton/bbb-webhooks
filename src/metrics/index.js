@@ -13,7 +13,6 @@ const {
   collectDefaultMetrics: COLLECT_DEFAULT_METRICS,
 } = config.has('prometheus') ? config.get('prometheus') : { enabled: false };
 
-let METRICS, AGENT;
 const PREFIX = 'bbb_webhooks_';
 const METRIC_NAMES = {
   OUTPUT_QUEUE_SIZE: `${PREFIX}output_queue_size`,
@@ -22,12 +21,16 @@ const METRIC_NAMES = {
   EVENT_DISPATCH_FAILURES: `${PREFIX}event_dispatch_failures`,
 }
 
+let METRICS = {}
+let AGENT;
+
 /**
  * injectMetrics - Inject a metrics dictionary into the Prometheus agent.
  * @param {PrometheusAgent} agent - Prometheus agent
  * @param {object} metricsDictionary - Metrics dictionary (key: metric name, value: prom-client metric object)
  * @returns {boolean} - True if metrics were injected, false otherwise
  * @public
+ * @memberof module:exporter
  */
 const injectMetrics = (agent, metricsDictionary) => {
   agent.injectMetrics(metricsDictionary);
@@ -37,7 +40,8 @@ const injectMetrics = (agent, metricsDictionary) => {
 /**
  * buildDefaultMetrics - Build the default metrics dictionary.
  * @returns {object} - Metrics dictionary (key: metric name, value: prom-client metric object)
- * @public
+ * @private
+ * @memberof module:exporter
  */
 const buildDefaultMetrics = () => {
   if (METRICS == null) {
@@ -75,6 +79,7 @@ const buildDefaultMetrics = () => {
  * getExporter - Start the Prometheus agent.
  * @returns {PrometheusAgent} - Prometheus agent
  * @public
+ * @memberof module:exporter
  */
 const getExporter = () => {
   if (AGENT && AGENT.started) return AGENT;
@@ -95,6 +100,17 @@ const getExporter = () => {
   return AGENT;
 }
 
+/**
+ * Exporter module for bbb-webhooks.
+ * @module exporter
+ * @public
+ * @type {object}
+ * @property {boolean} METRICS_ENABLED - Whether metrics are enabled or not.
+ * @property {object} METRIC_NAMES - Metric names.
+ * @property {object} METRICS - Metrics dictionary (key: metric name, value: prom-client metric object)
+ * @property {function} injectMetrics - Inject a metrics dictionary into the Prometheus agent.
+ * @property {Function} getExporter - Start the Prometheus agent.
+ */
 export default {
   METRICS_ENABLED,
   METRIC_NAMES,
