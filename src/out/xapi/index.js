@@ -1,3 +1,7 @@
+import XAPI from './xapi.js';
+import {meetingCompartment, userCompartment, pollCompartment} from './compartment.js';
+import redis from 'redis';
+import config from 'config';
 /*
  *  [MODULE_TYPES.OUTPUT]: {
  *   load: 'function',
@@ -21,11 +25,57 @@ export default class OutXAPI {
     this.loaded = false;
   }
 
+  _validateConfig () {
+    if (this.config == null) {
+      throw new Error("config not set");
+    }
+
+    // TODO
+
+    return true;
+  }
+
   async load () {
+    if (this._validateConfig()) {
+      this.redisClient = redis.createClient({
+        host: config.get('redis.host'),
+        port: config.get('redis.port'),
+        password: config.has('redis.password') ? config.get('redis.password') : undefined,
+      });
+
+      await this.redisClient.connect();
+
+      this.logger.debug('OutXAPI.onEvent:', this.config );
+
+      this.meetingStorage = new meetingCompartment(
+        this.redisClient,
+        this.config.redis.keys.meetingPrefix,
+        this.config.redis.keys.meetings
+      );
+
+      this.userStorage = new userCompartment(
+        this.redisClient,
+        this.config.redis.keys.userPrefix,
+        this.config.redis.keys.users
+      );
+
+      this.pollStorage = new pollCompartment(
+        this.redisClient,
+        this.config.redis.keys.pollPrefix,
+        this.config.redis.keys.polls
+      );
+
+      this.xAPI = new XAPI(this.context, this.config, this.meetingStorage, this.userStorage, this.pollStorage);
+    }
     this.loaded = true;
   }
 
   async unload () {
+    if (this.redisClient != null) {
+      await this.redisClient.disconnect();
+      this.redisClient = null;
+    }
+
     this.setCollector(OutXAPI._defaultCollector);
     this.loaded = false;
   }
@@ -42,6 +92,6 @@ export default class OutXAPI {
       throw new Error("OutXAPI not loaded");
     }
 
-    this.logger.debug('OutXAPI.onEvent:', event);
+    return this.xAPI.onEvent(event, raw);
   }
 }
