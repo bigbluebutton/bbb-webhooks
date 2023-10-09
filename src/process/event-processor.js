@@ -1,3 +1,4 @@
+import config from 'config';
 import IDMapping from '../db/redis/id-mapping.js';
 import { newLogger } from '../common/logger.js';
 import WebhooksEvent from '../process/event.js';
@@ -104,7 +105,7 @@ export default class EventProcessor {
             break;
           case "user-left":
             UserMapping.get().removeMapping(
-            outputEvent.data.attributes.user["internal-user-id"]
+              outputEvent.data.attributes.user["internal-user-id"]
             ).catch((error) => {
               Logger.error(`error removing user mapping: ${error}`, {
                 error: error.stack,

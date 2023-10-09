@@ -18,6 +18,9 @@ export default class WebhooksEvent {
     "user-left",
     "user-audio-voice-enabled",
     "user-audio-voice-disabled",
+    "user-audio-muted",
+    "user-audio-unmuted",
+    "user-audio-unhandled",
     "user-cam-broadcast-start",
     "user-cam-broadcast-end",
     "user-presenter-assigned",
@@ -62,6 +65,7 @@ export default class WebhooksEvent {
     USER_EVENTS: [
       "UserJoinedMeetingEvtMsg",
       "UserLeftMeetingEvtMsg",
+      "UserMutedVoiceEvtMsg",
       "UserJoinedVoiceConfToClientEvtMsg",
       "UserLeftVoiceConfToClientEvtMsg",
       "PresenterAssignedEvtMsg",
@@ -117,7 +121,7 @@ export default class WebhooksEvent {
   // Map internal message based on it's type
   map() {
     if (this.inputEvent) {
-       if (this.mappedEvent(this.inputEvent, WebhooksEvent.RAW.MEETING_EVENTS)) {
+      if (this.mappedEvent(this.inputEvent, WebhooksEvent.RAW.MEETING_EVENTS)) {
         this.meetingTemplate(this.inputEvent);
       } else if (this.mappedEvent(this.inputEvent, WebhooksEvent.RAW.USER_EVENTS)) {
         this.userTemplate(this.inputEvent);
@@ -236,6 +240,20 @@ export default class WebhooksEvent {
     }
   }
 
+  handleUserMutedVoice(message) {
+    try {
+      const { body } = message.core;
+      const muted = body.muted;
+
+      if (muted === true) return "user-audio-muted";
+      if (muted === false) return "user-audio-unmuted";
+      return "user-audio-unhandled";
+    } catch (error) {
+      logger.error('error handling user muted voice', error);
+      return "user-audio-unhandled";
+    }
+  }
+
   // Map internal to external message for user information
   userTemplate(messageObj) {
     const msgBody = messageObj.core.body;
@@ -266,15 +284,20 @@ export default class WebhooksEvent {
       }
     };
 
-    // Refactor the if-else chain down there to a switch case block
     switch (this.outputEvent.data.id) {
       case "user-audio-voice-enabled":
         this.outputEvent.data["attributes"]["user"]["listening-only"] = msgBody.listenOnly;
         this.outputEvent.data["attributes"]["user"]["sharing-mic"] = !msgBody.listenOnly;
+        this.outputEvent.data["attributes"]["user"]["muted"] = msgBody.muted;
         break;
       case "user-audio-voice-disabled":
         this.outputEvent.data["attributes"]["user"]["listening-only"] = false;
         this.outputEvent.data["attributes"]["user"]["sharing-mic"] = false;
+        this.outputEvent.data["attributes"]["user"]["muted"] = true;
+        break;
+      case "user-audio-muted":
+      case "user-audio-unmuted":
+        this.outputEvent.data["attributes"]["user"]["muted"] = msgBody.muted;
         break;
       case "user-emoji-changed": {
         const emoji = msgBody.emoji || msgBody.reactionEmoji || "none";
@@ -496,6 +519,7 @@ export default class WebhooksEvent {
       case "UserLeftMeetingEvtMsg": return "user-left";
       case "UserJoinedVoiceConfToClientEvtMsg": return "user-audio-voice-enabled";
       case "UserLeftVoiceConfToClientEvtMsg": return "user-audio-voice-disabled";
+      case "UserMutedVoiceEvtMsg": return this.handleUserMutedVoice(message);
       case "UserBroadcastCamStartedEvtMsg": return "user-cam-broadcast-start";
       case "UserBroadcastCamStoppedEvtMsg": return "user-cam-broadcast-end";
       case "PresenterAssignedEvtMsg": return "user-presenter-assigned";
