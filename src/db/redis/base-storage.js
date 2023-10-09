@@ -237,6 +237,8 @@ class StorageCompartmentKV {
 
   getAll() {
     const allWithAliases = Object.keys(this.localStorage).reduce((arr, id) => {
+      if (this.localStorage[id] == null) return arr;
+
       arr.push(this.localStorage[id]);
       return arr;
     }, []);
