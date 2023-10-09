@@ -18,6 +18,7 @@ const fromMonit = req => (req.headers["user-agent"] != null) && req.headers["use
 // Web server that listens for API calls and process them.
 export default class API {
   static logger = newLogger('api');
+
   static setStorage (storage) {
     API.storage = storage;
   }
@@ -34,6 +35,7 @@ export default class API {
 
     this._permanentURLs = options.permanentURLs || [];
     this._secret = options.secret;
+    this._exporter = options.exporter;
     this._validateChecksum = this._validateChecksum.bind(this);
 
     this._registerRoutes();
@@ -177,7 +179,7 @@ export default class API {
 
     if (meetingID != null) {
       // all the hooks that receive events from this meeting
-      hooks = API.storage.get().allGlobalSync();
+      hooks = API.storage.get().getAllGlobalHooks();
       hooks = hooks.concat(API.storage.get().findByExternalMeetingID(meetingID));
       hooks = Utils.sortBy(hooks, hook => hook.id);
     } else {

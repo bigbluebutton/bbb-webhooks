@@ -32,7 +32,7 @@ describe('bbb-webhooks tests', () => {
       .catch(done);
   });
   beforeEach((done) => {
-    const hooks = Hook.get().allGlobalSync();
+    const hooks = Hook.get().getAllGlobalHooks();
     Helpers.flushall(redisClient);
     hooks.forEach((hook) => {
       Helpers.flushredis(hook);
@@ -41,7 +41,7 @@ describe('bbb-webhooks tests', () => {
     done();
   })
   after(() => {
-    const hooks = Hook.get().allGlobalSync();
+    const hooks = Hook.get().getAllGlobalHooks();
     Helpers.flushall(redisClient);
     hooks.forEach((hook) => {
       Helpers.flushredis(hook);
@@ -57,7 +57,7 @@ describe('bbb-webhooks tests', () => {
         .get(getUrl)
         .expect('Content-Type', /text\/xml/)
         .expect(200, () => {
-          const hooks = Hook.get().allGlobalSync();
+          const hooks = Hook.get().getAllGlobalHooks();
           if (hooks && hooks.some(hook => hook.payload.permanent)) {
             done();
           } else {
@@ -76,7 +76,7 @@ describe('bbb-webhooks tests', () => {
       }).then(() => { done(); }).catch(done);
     });
     it('should destroy a hook', (done) => {
-      const hooks = Hook.get().allGlobalSync();
+      const hooks = Hook.get().getAllGlobalHooks();
       const hook = hooks[hooks.length-1].id;
       let getUrl = utils.checksumAPI(Helpers.url + Helpers.destroyUrl(hook), SHARED_SECRET);
       getUrl = Helpers.destroyUrl(hook) + '&checksum=' + getUrl
@@ -85,7 +85,7 @@ describe('bbb-webhooks tests', () => {
         .get(getUrl)
         .expect('Content-Type', /text\/xml/)
         .expect(200, () => {
-          const hooks = Hook.get().allGlobalSync();
+          const hooks = Hook.get().getAllGlobalHooks();
           if (hooks && hooks.every(hook => hook.payload.callbackURL != Helpers.callback)) done();
         })
     })
@@ -99,7 +99,7 @@ describe('bbb-webhooks tests', () => {
         .get(getUrl)
         .expect('Content-Type', /text\/xml/)
         .expect(200, () => {
-          const hooks = Hook.get().allGlobalSync();
+          const hooks = Hook.get().getAllGlobalHooks();
           if (hooks && hooks[0].payload.callbackURL == WH_CONFIG.permanentURLs[0].url) {
             done();
           }
@@ -112,7 +112,7 @@ describe('bbb-webhooks tests', () => {
 
   describe('GET /hooks/create getRaw hook', () => {
     after( (done) => {
-      const hooks = Hook.get().allGlobalSync();
+      const hooks = Hook.get().getAllGlobalHooks();
       Hook.get().removeSubscription(hooks[hooks.length-1].id)
         .then(() => { done(); })
         .catch(done);
@@ -125,7 +125,7 @@ describe('bbb-webhooks tests', () => {
         .get(getUrl)
         .expect('Content-Type', /text\/xml/)
         .expect(200, () => {
-          const hooks = Hook.get().allGlobalSync();
+          const hooks = Hook.get().getAllGlobalHooks();
           if (hooks && hooks.some((hook) => { return hook.payload.getRaw })) {
             done();
           }
@@ -138,18 +138,18 @@ describe('bbb-webhooks tests', () => {
 
   describe('/POST mapped message', () => {
     before((done) => {
-      const hooks = Hook.get().allGlobalSync();
+      const hooks = Hook.get().getAllGlobalHooks();
       const hook = hooks[0];
       Helpers.flushredis(hook);
       done();
     });
     after(() => {
-      const hooks = Hook.get().allGlobalSync();
+      const hooks = Hook.get().getAllGlobalHooks();
       const hook = hooks[0];
       Helpers.flushredis(hook);
     })
     it('should post mapped message ', (done) => {
-      const hooks = Hook.get().allGlobalSync();
+      const hooks = Hook.get().getAllGlobalHooks();
       const hook = hooks[0];
       const getpost = nock(WH_CONFIG.permanentURLs[0].url)
         .filteringRequestBody((body) => {
@@ -165,20 +165,20 @@ describe('bbb-webhooks tests', () => {
   });
   describe('/POST raw message', () => {
     before((done) => {
-          const hooks = Hook.get().allGlobalSync();
+          const hooks = Hook.get().getAllGlobalHooks();
           const hook = hooks[0];
           Helpers.flushredis(hook);
       done();
     });
     after((done) => {
-      const hooks = Hook.get().allGlobalSync();
+      const hooks = Hook.get().getAllGlobalHooks();
       Hook.get().removeSubscription(hooks[hooks.length-1].id)
         .then(() => { done(); })
         .catch(done);
       Helpers.flushredis(hooks[hooks.length-1]);
     });
     it('should post raw message ', (done) => {
-      const hooks = Hook.get().allGlobalSync();
+      const hooks = Hook.get().getAllGlobalHooks();
       const hook = hooks[0];
 
       const getpost = nock(Helpers.callback)
@@ -201,13 +201,13 @@ describe('bbb-webhooks tests', () => {
 
   describe('/POST multi message', () => {
     before( () =>{
-      const hooks = Hook.get().allGlobalSync();
+      const hooks = Hook.get().getAllGlobalHooks();
       const hook = hooks[0];
       Helpers.flushredis(hook);
       hook.queue = ["multiMessage1"];
     });
     it('should post multi message ', (done) => {
-      const hooks = Hook.get().allGlobalSync();
+      const hooks = Hook.get().getAllGlobalHooks();
       const hook = hooks[0];
       hook.enqueue("multiMessage2")
       const getpost = nock(WH_CONFIG.permanentURLs[0].url)

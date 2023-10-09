@@ -147,7 +147,7 @@ class HookCompartment extends StorageCompartmentKV {
     return null;
   }
 
-  allGlobalSync() {
+  getAllGlobalHooks() {
     return this.getAll().filter(hook => this.isGlobal(hook));
   }
 

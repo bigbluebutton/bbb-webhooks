@@ -23,37 +23,19 @@ class WebHooks {
 
   /**
    * _processRaw - Dispatch raw events to hooks that expect raw data.
-   * @param {object} event - A raw event to be dispatched.
+   * @param {object} hook - The hook to which the event should be dispatched
+   * @param {object} rawEvent - A raw event to be dispatched.
    * @returns {Promise} - A promise that resolves when all hooks have been notified.
    * @private
    */
-  _processRaw(event) {
-    let meetingID;
-    let hooks = HookCompartment.get().allGlobalSync();
+  _processRaw(hook, rawEvent) {
+    if (hook == null || !hook?.payload?.getRaw || !this.config.getRaw) return Promise.resolve();
 
-    // Add hooks for the specific meeting that expect raw data
-    // Get meetingId for a raw message that was previously mapped by another webhook application or if it's straight from redis
-    meetingID = this._extractIntMeetingID(event);
+    this.logger.info('dispatching raw event to hook', { callbackURL: hook.payload.callbackURL });
 
-    if (meetingID != null) {
-      const eMeetingID = this._extractExternalMeetingID(event);
-      hooks = hooks.concat(HookCompartment.get().findByExternalMeetingID(eMeetingID));
-      // Notify the hooks that expect raw data
-      return Promise.all(hooks.map((hook) => {
-        if (hook == null) return Promise.resolve();
-
-        if (hook.payload.getRaw) {
-          this.logger.info('dispatching raw event to hook', { callbackURL: hook.payload.callbackURL });
-          return this.dispatch(event, hook).catch((error) => {
-            this.logger.error('failed to enqueue', { calbackURL: hook.payload.callbackURL, error: error.stack });
-          });
-        }
-
-        return Promise.resolve();
-      }));
-    }
-
-    return Promise.resolve();
+    return this.dispatch(rawEvent, hook).catch((error) => {
+      this.logger.error('failed to enqueue', { calbackURL: hook.payload.callbackURL, error: error.stack });
+    });
   }
 
   /**
@@ -145,10 +127,11 @@ class WebHooks {
    * @async
    */
   onEvent(event, raw) {
-    let hooks = HookCompartment.get().allGlobalSync();
+    const meetingID = this._extractIntMeetingID(event);
+    let hooks = HookCompartment.get().getAllGlobalHooks();
+
     // filter the hooks that need to receive this event
     // add hooks that are registered for this specific meeting
-    const meetingID = this._extractIntMeetingID(event);
     if (meetingID != null) {
       const eMeetingID = this._extractExternalMeetingID(event);
       hooks = hooks.concat(HookCompartment.get().findByExternalMeetingID(eMeetingID));
@@ -161,20 +144,16 @@ class WebHooks {
 
     return Promise.all(hooks.map((hook) => {
       if (hook == null) return Promise.resolve();
+
       if (!hook.payload.getRaw) {
         this.logger.info('dispatching event to hook', { callbackURL: hook.payload.callbackURL });
         return this.dispatch(event, hook).catch((error) => {
           this.logger.error('failed to enqueue', { calbackURL: hook.payload.callbackURL, error: error.stack });
         });
+      } else {
+        return this._processRaw(hook, raw);
       }
-
-      return Promise.resolve();
-    })).then(() => {
-      const sendRaw = hooks.some(hook => hook && hook.payload.getRaw);
-      if (sendRaw && this.config.getRaw) return this._processRaw(raw);
-
-      return Promise.resolve();
-    });
+    }));
   }
 }
 export default WebHooks;

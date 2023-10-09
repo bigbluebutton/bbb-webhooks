@@ -15,6 +15,10 @@ const sharedSecret = process.env.SHARED_SECRET || eject("SHARED_SECRET not set")
 const catcherDomain = process.env.CATCHER_DOMAIN || eject("CATCHER_DOMAIN not set");
 const bbbDomain = process.env.BBB_DOMAIN || eject("BBB_DOMAIN not set");
 const FOREVER = (process.env.FOREVER && process.env.FOREVER === 'true') || false;
+const GET_RAW = (process.env.GET_RAW && process.env.GET_RAW === 'true') || false;
+const EVENT_ID = process.env.EVENT_ID || '';
+const MEETING_ID = process.env.MEETING_ID || '';
+
 let server = null;
 
 const encodeForUrl = (value) => {
@@ -53,9 +57,11 @@ app.post("/callback", (req, res) => {
 });
 console.log("Server listening on port", port);
 
-// registers a global hook on the webhooks app
+// registers a hook on the webhooks app
 const myUrl = "http://" + catcherDomain + ":" + port + "/callback";
-const params = "callbackURL=" + encodeForUrl(myUrl);
+let params = "callbackURL=" + encodeForUrl(myUrl) + "&getRaw=" + GET_RAW;
+if (EVENT_ID) params += "&eventID=" + EVENT_ID;
+if (MEETING_ID) params += "&meetingID=" + MEETING_ID;
 const checksum = sha1("hooks/create" + params + sharedSecret);
 const fullUrl = "http://" + bbbDomain + "/bigbluebutton/api/hooks/create?" +
   params + "&checksum=" + checksum

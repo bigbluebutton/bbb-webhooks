@@ -45,12 +45,13 @@ class OutWebHooks {
     this.type = OutWebHooks.type;
     this.config = config;
     this.setContext(context);
+    this.webHooks = new WebHooks(this.context, this.config);
     this.api = new API({
       permanentURLs: this.config.permanentURLs,
       secret: this.config.server.secret,
+      exporter: this.context.exporter,
     });
     API.setStorage(HookCompartment);
-    this.webHooks = new WebHooks(this.context, this.config);
     this.loaded = false;
   }
 
