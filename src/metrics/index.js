@@ -1,6 +1,12 @@
 import config from 'config';
 import PrometheusAgent from './prometheus-agent.js';
-import { Counter, Gauge } from 'prom-client';
+import {
+  Counter,
+  Gauge,
+  Histogram,
+  Summary,
+  register,
+} from 'prom-client';
 import { newLogger } from '../common/logger.js';
 
 const logger = newLogger('prometheus');
@@ -26,13 +32,17 @@ let AGENT;
 
 /**
  * injectMetrics - Inject a metrics dictionary into the Prometheus agent.
- * @param {PrometheusAgent} agent - Prometheus agent
  * @param {object} metricsDictionary - Metrics dictionary (key: metric name, value: prom-client metric object)
+ * @param {object} options - Options object
+ * @param {PrometheusAgent} options.agent - Prometheus agent to inject the metrics into
+ *                                          If not specified, the default agent will be used
  * @returns {boolean} - True if metrics were injected, false otherwise
  * @public
  * @memberof module:exporter
  */
-const injectMetrics = (agent, metricsDictionary) => {
+const injectMetrics = (metricsDictionary, {
+  agent = AGENT,
+} = {}) => {
   agent.injectMetrics(metricsDictionary);
   return true;
 }
@@ -75,29 +85,15 @@ const buildDefaultMetrics = () => {
   return METRICS;
 };
 
-/**
- * getExporter - Start the Prometheus agent.
- * @returns {PrometheusAgent} - Prometheus agent
- * @public
- * @memberof module:exporter
- */
-const getExporter = () => {
-  if (AGENT && AGENT.started) return AGENT;
+AGENT = new PrometheusAgent(METRICS_HOST, METRICS_PORT, {
+  path: METRICS_PATH,
+  prefix: PREFIX,
+  collectDefaultMetrics: COLLECT_DEFAULT_METRICS,
+  logger,
+});
 
-  if (AGENT == null) {
-    AGENT = new PrometheusAgent(METRICS_HOST, METRICS_PORT, {
-      path: METRICS_PATH,
-      prefix: PREFIX,
-      collectDefaultMetrics: COLLECT_DEFAULT_METRICS,
-      logger,
-    });
-  }
-
-  if (METRICS_ENABLED && injectMetrics(AGENT, buildDefaultMetrics())) {
-    AGENT.start();
-  }
-
-  return AGENT;
+if (METRICS_ENABLED && injectMetrics(buildDefaultMetrics())) {
+  AGENT.start();
 }
 
 /**
@@ -106,9 +102,14 @@ const getExporter = () => {
  * @property {boolean} METRICS_ENABLED - Whether the exporter is enabled or not
  * @property {object} METRIC_NAMES - Indexed metric names
  * @property {object} METRICS - Active metrics dictionary (key: metric name, value: prom-client metric object)
+ * @property {Function} Counter - prom-client Counter class
+ * @property {Function} Gauge - prom-client Gauge class
+ * @property {Function} Histogram - prom-client Histogram class
+ * @property {Function} Summary - prom-client Summary class
+ * @property {Function} register - Register a new metric with the Prometheus agent
  * @property {Function} injectMetrics - Inject a new metrics dictionary into the Prometheus agent
  *                                      Merges with the existing dictionary
- * @property {Function} getExporter - Get a Prometheus agent instance to use for updating metrics
+ * @property {PrometheusAgent} agent - Prometheus agent
  */
 
 /**
@@ -121,7 +122,12 @@ export default {
   METRICS_ENABLED,
   METRIC_NAMES,
   METRICS,
+  Counter,
+  Gauge,
+  Histogram,
+  Summary,
+  register,
   injectMetrics,
-  getExporter,
+  agent: AGENT,
 };
 

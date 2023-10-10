@@ -205,7 +205,7 @@ class PrometheusScrapeAgent {
       const metric = this.getMetric(metricName);
 
       if (metric) {
-        promclient.register.reset(metricName);
+        metric.reset(metricName);
       }
     });
   }

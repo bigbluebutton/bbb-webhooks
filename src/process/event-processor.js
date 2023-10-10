@@ -1,4 +1,3 @@
-import config from 'config';
 import IDMapping from '../db/redis/id-mapping.js';
 import { newLogger } from '../common/logger.js';
 import WebhooksEvent from '../process/event.js';
@@ -20,7 +19,7 @@ export default class EventProcessor {
     this.inputs = inputs;
     this.outputs = outputs;
 
-    this._exporter = Metrics.getExporter();
+    this._exporter = Metrics.agent;
   }
 
   _trackModuleEvents() {

@@ -1,5 +1,6 @@
 import CallbackEmitter from './callback-emitter.js';
 import HookCompartment from '../../db/redis/hooks.js';
+import { METRIC_NAMES } from './metrics.js';
 
 /**
  * WebHooks.
@@ -14,11 +15,20 @@ class WebHooks {
    * constructor.
    * @param {Context} context - This module's context as provided by the main application.
    * @param {object} config - This module's configuration object.
+   * @param {object} options - Options.
+   * @param {MetricsExporter} options.exporter - The exporter.
+   * @param {Array} options.permanentURLs - An array of permanent webhook URLs to be registered.
    */
-  constructor(context, config) {
+  constructor(context, config, {
+    exporter = {},
+    permanentURLs = [],
+  } = {}) {
     this.context = context;
     this.logger = context.getLogger();
     this.config = config;
+
+    this._exporter = exporter;
+    this._permanentURLs = permanentURLs;
   }
 
   /**
@@ -65,6 +75,47 @@ class WebHooks {
   }
 
   /**
+   * _isHookPermanent - Check if a hook is permanent.
+   * @param {string} callbackURL - The callback URL of the hook.
+   * @returns {boolean} - Whether the hook is permanent or not.
+   * @private
+   */
+  _isHookPermanent(callbackURL) {
+    return this._permanentURLs.some(obj => {
+      return obj.url === callbackURL
+    });
+  }
+
+  /**
+   * createPermanentHooks - Create permanent hooks.
+   * @returns {Promise} - A promise that resolves when all permanent hooks have been created.
+   * @public
+   * @async
+   */
+  async createPermanentHooks() {
+    for (let i = 0; i < this._permanentURLs.length; i++) {
+      try {
+        const { url: callbackURL, getRaw } = this._permanentURLs[i];
+        const { hook, duplicated } = await HookCompartment.get().addSubscription({
+          callbackURL,
+          permanent: this._isHookPermanent(callbackURL),
+          getRaw,
+        });
+
+        if (duplicated) {
+          this.logger.info(`permanent hook already set ${hook.id}`, { hook: hook.payload });
+        } else if (hook != null) {
+          this.logger.info('permanent hook created successfully');
+        } else {
+          this.logger.error('error creating permanent hook');
+        }
+      } catch (error) {
+        this.logger.error(`error creating permanent hook ${error}`);
+      }
+    }
+  }
+
+  /**
    * dispatch - Dispatch an event to the target hook.
    * @param {object} event - The event to be dispatched (raw or mapped)
    * @param {StorageItem} hook - The hook to which the event should be dispatched
@@ -106,11 +157,29 @@ class WebHooks {
       emitter.on(CallbackEmitter.EVENTS.SUCCESS, () => {
         this.logger.info(`successfully dispatched to ${hook.payload.callbackURL}`);
         emitter.stop();
+        this._exporter.agent.increment(METRIC_NAMES.PROCESSED_EVENTS, {
+          callbackURL: hook.payload.callbackURL,
+          eventId: event.data.id,
+        });
         return resolve();
       });
+
+      emitter.on(CallbackEmitter.EVENTS.FAILED, (error) => {
+        this._exporter.agent.increment(METRIC_NAMES.HOOK_FAILURES, {
+          callbackURL: hook.payload.callbackURL,
+          reason: error.message,
+          eventId: event.data.id,
+        });
+      });
+
       emitter.once(CallbackEmitter.EVENTS.STOPPED, () => {
         this.logger.warn(`too many failed attempts to perform a callback call, removing the hook for: ${hook.payload.callbackURL}`);
         emitter.stop();
+        this._exporter.agent.increment(METRIC_NAMES.HOOK_FAILURES, {
+          callbackURL: hook.payload.callbackURL,
+          reason: 'too many failed attempts',
+          eventId: event.data.id,
+        });
         // TODO just disable
         return hook.destroy().then(resolve).catch(reject);
       });

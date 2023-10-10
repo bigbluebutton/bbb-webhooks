@@ -1,6 +1,7 @@
 import WebHooks from './web-hooks.js';
 import API from './api/api.js';
 import HookCompartment from '../../db/redis/hooks.js';
+import { buildMetrics, METRIC_NAMES } from './metrics.js';
 
 /*
  *  [MODULE_TYPES.OUTPUT]: {
@@ -22,7 +23,7 @@ import HookCompartment from '../../db/redis/hooks.js';
  * @property {BbbWebhooksLogger} logger - The logger.
  * @property {object} config - This module's configuration object.
  * @property {API} api - The Webhooks API server.
- * @property {WebHooks} webHooks - The Webhooks dispatcher.
+ * @property {WebHooks} webhooks - The Webhooks dispatcher.
  * @property {boolean} loaded - Whether the module is loaded or not.
  */
 class OutWebHooks {
@@ -45,14 +46,60 @@ class OutWebHooks {
     this.type = OutWebHooks.type;
     this.config = config;
     this.setContext(context);
-    this.webHooks = new WebHooks(this.context, this.config);
+    this.loaded = false;
+    this._exporter = this.context.utils.exporter;
+
+    this._bootstrapExporter();
+    this.webhooks = new WebHooks(
+      this.context,
+      this.config, {
+        exporter: this._exporter,
+        permanentURLs: this.config.permanentURLs,
+      },
+    );
     this.api = new API({
-      permanentURLs: this.config.permanentURLs,
       secret: this.config.server.secret,
-      exporter: this.context.exporter,
+      exporter: this._exporter,
+      permanentURLs: this.config.permanentURLs,
     });
     API.setStorage(HookCompartment);
-    this.loaded = false;
+  }
+
+  /**
+   * _collectRegisteredHooks - Collects registered hooks data for the Prometheus
+   *                           exporter.
+   * @private
+   */
+  _collectRegisteredHooks () {
+    try {
+      const hooks = HookCompartment.get().getAll();
+      this._exporter.agent.reset([METRIC_NAMES.REGISTERED_HOOKS]);
+      hooks.forEach(hook => {
+        this._exporter.agent.set(METRIC_NAMES.REGISTERED_HOOKS, 1, {
+          callbackURL: hook.payload.callbackURL,
+          permanent: hook.payload.permanent,
+          getRaw: hook.payload.getRaw,
+          // FIXME enabled is hardecoded until enabled/disabled logic is implemented
+          enabled: true,
+        });
+      });
+    } catch (error) {
+      this.logger.error('Prometheus failed to collect registered hooks', { error: error.stack });
+    }
+  }
+
+  /**
+   * _bootstrapExporter - Injects the module's metrics into the Prometheus
+   *                     exporter.
+   *                     This method is called in the constructor.
+   * @private
+   */
+  _bootstrapExporter () {
+    this._exporter.injectMetrics(buildMetrics(this._exporter));
+    this._exporter.agent.setCollector(
+      METRIC_NAMES.REGISTERED_HOOKS,
+      this._collectRegisteredHooks.bind(this)
+    );
   }
 
   /**
@@ -63,7 +110,7 @@ class OutWebHooks {
    */
   async load () {
     await this.api.start(this.config.api.port, this.config.api.bind);
-    await this.api.createPermanents();
+    await this.webhooks.createPermanentHooks();
 
     this.loaded = true;
   }
@@ -75,8 +122,8 @@ class OutWebHooks {
    * @returns {Promise<void>}
    */
   async unload () {
-    if (this.webHooks) {
-      this.webHooks = null;
+    if (this.webhooks) {
+      this.webhooks = null;
     }
 
     this.setCollector(OutWebHooks._defaultCollector);
@@ -105,11 +152,11 @@ class OutWebHooks {
    * @returns {Promise<void>}
    */
   async onEvent (event, raw) {
-    if (!this.loaded || !this.webHooks) {
+    if (!this.loaded || !this.webhooks) {
       throw new Error("OutWebHooks not loaded");
     }
 
-    return this.webHooks.onEvent(event, raw);
+    return this.webhooks.onEvent(event, raw);
   }
 }
 

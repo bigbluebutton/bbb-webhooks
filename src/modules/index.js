@@ -112,14 +112,14 @@ export default class ModuleManager {
         this.modules[module.id] = module;
         this.logger.info(`module ${name} loaded`);
 
-        Exporter.getExporter().set(
+        Exporter.agent.set(
           Exporter.METRIC_NAMES.MODULE_STATUS,
           1,
           { module: name, moduleType: description.type },
         );
       } catch (error) {
         this.logger.error(`failed to load module ${name}`, error);
-        Exporter.getExporter().set(
+        Exporter.agent.set(
           Exporter.METRIC_NAMES.MODULE_STATUS,
           0,
           { module: name, moduleType: description.type },
