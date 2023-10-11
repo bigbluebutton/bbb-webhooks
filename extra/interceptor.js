@@ -5,7 +5,7 @@
 // events, but only the first time they happen.
 import express from "express";
 import fetch from "node-fetch";
-import sha1 from "sha1";
+import crypto from "crypto";
 import bodyParser from 'body-parser';
 
 // server configs
@@ -62,7 +62,7 @@ const myUrl = "http://" + catcherDomain + ":" + port + "/callback";
 let params = "callbackURL=" + encodeForUrl(myUrl) + "&getRaw=" + GET_RAW;
 if (EVENT_ID) params += "&eventID=" + EVENT_ID;
 if (MEETING_ID) params += "&meetingID=" + MEETING_ID;
-const checksum = sha1("hooks/create" + params + sharedSecret);
+const checksum = crypto.createHash('sha1').update("hooks/create" + params + sharedSecret).digest('hex');
 const fullUrl = "http://" + bbbDomain + "/bigbluebutton/api/hooks/create?" +
   params + "&checksum=" + checksum
 console.log("Registering a hook with", fullUrl);
