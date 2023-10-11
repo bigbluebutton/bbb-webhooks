@@ -131,12 +131,17 @@ class WebHooks {
     return new Promise((resolve, reject) => {
       // Check for an invalid event - skip if that's the case
       if (event == null) return;
+      const mappedEventId = event?.data?.id;
+      const eventId = mappedEventId
+        || event?.envelope?.name
+        || 'unknownEvent';
+
       // CHeck if the event is in the list of events to be sent (if list was specified)
       if (hook.payload.eventID != null
-        && (event?.data?.id == null
-          || (!hook.payload.eventID.some((ev) => ev == event.data.id.toLowerCase())))
+        && (mappedEventId == null
+          || (!hook.payload.eventID.some((ev) => ev == mappedEventId.toLowerCase())))
       ) {
-        this.logger.info(`${hook.payload.callbackURL} skipping event because not in event list`, { eventID: event.data.id });
+        this.logger.info(`${hook.payload.callbackURL} skipping event because not in event list`, { eventID: eventId });
         return;
       }
 
@@ -150,6 +155,7 @@ class WebHooks {
           auth2_0: this.config.server.auth2_0,
           requestTimeout: this.config.requestTimeout,
           retryIntervals: this.config.retryIntervals,
+          checksumAlgorithm: this.config.hookChecksumAlgorithm,
         }
       );
 
@@ -159,7 +165,7 @@ class WebHooks {
         emitter.stop();
         this._exporter.agent.increment(METRIC_NAMES.PROCESSED_EVENTS, {
           callbackURL: hook.payload.callbackURL,
-          eventId: event.data.id,
+          eventId,
         });
         return resolve();
       });
@@ -168,7 +174,7 @@ class WebHooks {
         this._exporter.agent.increment(METRIC_NAMES.HOOK_FAILURES, {
           callbackURL: hook.payload.callbackURL,
           reason: error.message,
-          eventId: event.data.id,
+          eventId,
         });
       });
 
@@ -178,7 +184,7 @@ class WebHooks {
         this._exporter.agent.increment(METRIC_NAMES.HOOK_FAILURES, {
           callbackURL: hook.payload.callbackURL,
           reason: 'too many failed attempts',
-          eventId: event.data.id,
+          eventId,
         });
         // TODO just disable
         return hook.destroy().then(resolve).catch(reject);

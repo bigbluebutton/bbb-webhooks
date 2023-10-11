@@ -1,7 +1,7 @@
 import express from 'express';
 import url from 'url';
 import { newLogger } from '../../../common/logger.js';
-import Utils from '../../../common/utils.js';
+import Utils from '../utils.js';
 import responses from './responses.js';
 import { METRIC_NAMES } from '../metrics.js';
 
@@ -32,6 +32,7 @@ export default class API {
     this._permanentURLs = options.permanentURLs || [];
     this._secret = options.secret;
     this._exporter = options.exporter;
+    this._supportedChecksumAlgorithms = options.supportedChecksumAlgorithms;
 
     this._validateChecksum = this._validateChecksum.bind(this);
 
@@ -219,12 +220,10 @@ export default class API {
   // If it doesn't match BigBlueButton's shared secret, will send an XML response
   // with an error code just like BBB does.
   _validateChecksum(req, res, next) {
-    const urlObj = url.parse(req.url, true);
-    const checksum = urlObj.query["checksum"];
-
-    if (checksum === Utils.checksumAPI(req.url, this._secret)) {
+    if (Utils.isUrlChecksumValid(req.url, this._secret, this._supportedChecksumAlgorithms)) {
       next();
     } else {
+      const urlObj = url.parse(req.url, true);
       API.logger.info('checksum check failed, sending a checksumError response', responses.checksumError);
       API.respondWithXML(res, responses.checksumError);
       this._exporter.agent.increment(METRIC_NAMES.API_REQUEST_FAILURES_XML, {

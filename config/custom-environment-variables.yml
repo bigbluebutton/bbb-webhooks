@@ -40,6 +40,8 @@ modules:
       api:
         bind: SERVER_BIND_IP
         port: SERVER_PORT
+        supportedChecksumAlgorithms: SUPPORTED_CHECKSUM_ALGORITHMS
+      hookChecksumAlgorithm: HOOK_CHECKSUM_ALGORITHM
       queue:
         enabled: ENABLE_WH_QUEUE
       permanentURLs:

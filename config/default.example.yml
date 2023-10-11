@@ -68,10 +68,22 @@ modules:
       api:
         bind: 127.0.0.1
         port: 3005
+        # Supported checksum generation algorithms for BBB API calls
+        # This should mirror the supportedChecksumAlgorithms configuration
+        # in bbb-web.properties
+        supportedChecksumAlgorithms:
+          - sha1
+          - sha256
+          - sha384
+          - sha512
       queue:
         enabled: false
         maxSize: 10000
         concurrency: 1
+      # Defines the algorithm to be used when generating checksums for
+      # callback POST requests. One of: sha1, sha256, sha384 or sha512
+      # Default: sha1
+      hookChecksumAlgorithm: sha1
       # IP where permanent hook will post data (more than 1 URL means more than 1 permanent hook)
       permanentURLs: []
       # How many messages will be enqueued to be processed at the same time

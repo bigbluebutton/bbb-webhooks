@@ -1,7 +1,7 @@
 import { describe, it, before, after, beforeEach } from 'mocha';
 import request from 'supertest';
 import nock from "nock";
-import utils from '../src/common/utils.js';
+import Utils from '../src/out/webhooks/utils.js';
 import config from 'config';
 import Hook from '../src/db/redis/hooks.js';
 import Helpers from './helpers.js'
@@ -13,6 +13,7 @@ const SHARED_SECRET = process.env.SHARED_SECRET || function () { throw new Error
 const MODULES = config.get('modules');
 const WH_CONFIG = MODULES['../out/webhooks/index.js'].config;
 const IN_REDIS_CONFIG = MODULES['../in/redis/index.js'].config.redis;
+const CHECKSUM_ALGORITHM = 'sha1';
 
 describe('bbb-webhooks tests', () => {
   const application = new Application();
@@ -50,7 +51,10 @@ describe('bbb-webhooks tests', () => {
 
   describe('GET /hooks/list permanent', () => {
     it('should list permanent hook', (done) => {
-      let getUrl = utils.checksumAPI(Helpers.url + Helpers.listUrl, SHARED_SECRET);
+      let getUrl = Utils.checksumAPI(
+        Helpers.url + Helpers.listUrl,
+        SHARED_SECRET, CHECKSUM_ALGORITHM
+      );
       getUrl = Helpers.listUrl + '?checksum=' + getUrl
 
       request(Helpers.url)
@@ -78,7 +82,11 @@ describe('bbb-webhooks tests', () => {
     it('should destroy a hook', (done) => {
       const hooks = Hook.get().getAllGlobalHooks();
       const hook = hooks[hooks.length-1].id;
-      let getUrl = utils.checksumAPI(Helpers.url + Helpers.destroyUrl(hook), SHARED_SECRET);
+      let getUrl = Utils.checksumAPI(
+        Helpers.url + Helpers.destroyUrl(hook),
+        SHARED_SECRET,
+        CHECKSUM_ALGORITHM,
+      );
       getUrl = Helpers.destroyUrl(hook) + '&checksum=' + getUrl
 
       request(Helpers.url)
@@ -93,7 +101,11 @@ describe('bbb-webhooks tests', () => {
 
   describe('GET /hooks/destroy permanent hook', () => {
     it('should not destroy the permanent hook', (done) => {
-      let getUrl = utils.checksumAPI(Helpers.url + Helpers.destroyPermanent, SHARED_SECRET);
+      let getUrl = Utils.checksumAPI(
+        Helpers.url + Helpers.destroyPermanent,
+        SHARED_SECRET,
+        CHECKSUM_ALGORITHM,
+      );
       getUrl = Helpers.destroyPermanent + '&checksum=' + getUrl
       request(Helpers.url)
         .get(getUrl)
@@ -118,7 +130,11 @@ describe('bbb-webhooks tests', () => {
         .catch(done);
     });
     it('should create a hook with getRaw=true', (done) => {
-      let getUrl = utils.checksumAPI(Helpers.url + Helpers.createUrl + Helpers.createRaw, SHARED_SECRET);
+      let getUrl = Utils.checksumAPI(
+        Helpers.url + Helpers.createUrl + Helpers.createRaw,
+        SHARED_SECRET,
+        CHECKSUM_ALGORITHM,
+      );
       getUrl = Helpers.createUrl + '&checksum=' + getUrl + Helpers.createRaw
 
       request(Helpers.url)

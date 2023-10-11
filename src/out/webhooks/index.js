@@ -61,6 +61,7 @@ class OutWebHooks {
       secret: this.config.server.secret,
       exporter: this._exporter,
       permanentURLs: this.config.permanentURLs,
+      supportedChecksumAlgorithms: this.config.api.supportedChecksumAlgorithms,
     });
     API.setStorage(HookCompartment);
   }

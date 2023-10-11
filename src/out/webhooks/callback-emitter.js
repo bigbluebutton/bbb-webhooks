@@ -1,6 +1,6 @@
 import url from 'url';
 import { EventEmitter } from 'node:events';
-import Utils from '../../common/utils.js';
+import Utils from './utils.js';
 import fetch from 'node-fetch';
 
 // A simple string that identifies the event
@@ -41,6 +41,7 @@ export default class CallbackEmitter extends EventEmitter {
       retryIntervals,
       permanentIntervalReset,
       logger = console,
+      checksumAlgorithm,
     } = {},
   ) {
     super();
@@ -73,6 +74,7 @@ export default class CallbackEmitter extends EventEmitter {
       10000,
       30000,
     ];
+    this._checksumAlgorithm = checksumAlgorithm;
   }
 
   _scheduleNext(timeout) {
@@ -88,7 +90,7 @@ export default class CallbackEmitter extends EventEmitter {
         const interval = this._retryIntervals[this.nextInterval];
 
         if (interval != null) {
-          this.logger.warn(`trying the callback again in ${interval/1000.0} secs: ${this.callbackURL}`);
+          this.logger.warn(`trying the callback again in ${interval/1000.0} secs: ${this.callbackURL}`, error);
           this.nextInterval++;
           this._scheduleNext(interval);
           // no intervals anymore, time to give up
@@ -134,7 +136,10 @@ export default class CallbackEmitter extends EventEmitter {
         Authorization: `Bearer ${sharedSecret}`,
       };
     } else {
-      const checksum = Utils.checksum(`${this.callbackURL}${JSON.stringify(data)}${sharedSecret}`);
+      const checksum = Utils.shaHex(
+        `${this.callbackURL}${JSON.stringify(data)}${sharedSecret}`,
+        this._checksumAlgorithm,
+      );
       // get the final callback URL, including the checksum
       callbackURL = this.callbackURL;
       try {
