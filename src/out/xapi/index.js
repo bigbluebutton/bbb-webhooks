@@ -1,5 +1,5 @@
 import XAPI from './xapi.js';
-import {meetingCompartment, userCompartment, pollCompartment} from './compartment.js';
+import { meetingCompartment, userCompartment, pollCompartment } from './compartment.js';
 import redis from 'redis';
 import config from 'config';
 /*
@@ -14,18 +14,18 @@ import config from 'config';
 export default class OutXAPI {
   static type = "out";
 
-  static _defaultCollector () {
+  static _defaultCollector() {
     throw new Error('Collector not set');
   }
 
-  constructor (context, config = {}) {
+  constructor(context, config = {}) {
     this.type = OutXAPI.type;
     this.config = config;
     this.setContext(context);
     this.loaded = false;
   }
 
-  _validateConfig () {
+  _validateConfig() {
     if (this.config == null) {
       throw new Error("config not set");
     }
@@ -35,7 +35,7 @@ export default class OutXAPI {
     return true;
   }
 
-  async load () {
+  async load() {
     if (this._validateConfig()) {
       this.redisClient = redis.createClient({
         host: config.get('redis.host'),
@@ -45,7 +45,7 @@ export default class OutXAPI {
 
       await this.redisClient.connect();
 
-      this.logger.debug('OutXAPI.onEvent:', this.config );
+      this.logger.debug('OutXAPI.onEvent:', this.config);
 
       this.meetingStorage = new meetingCompartment(
         this.redisClient,
@@ -70,7 +70,7 @@ export default class OutXAPI {
     this.loaded = true;
   }
 
-  async unload () {
+  async unload() {
     if (this.redisClient != null) {
       await this.redisClient.disconnect();
       this.redisClient = null;
@@ -80,14 +80,14 @@ export default class OutXAPI {
     this.loaded = false;
   }
 
-  setContext (context) {
+  setContext(context) {
     this.context = context;
     this.logger = context.getLogger();
 
     return context;
   }
 
-  async onEvent (event, raw) {
+  async onEvent(event, raw) {
     if (!this.loaded) {
       throw new Error("OutXAPI not loaded");
     }

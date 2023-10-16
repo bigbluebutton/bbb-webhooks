@@ -87,6 +87,10 @@ export default class XAPI {
       const meeting_data_storage = await this.meetingStorage.getMeetingData(
         meeting_data.internal_meeting_id
       );
+      // Do not proceed if meeting_data is not found on the storage
+      if (meeting_data_storage === undefined) {
+        return;
+      }
       Object.assign(meeting_data, meeting_data_storage);
 
       if (event.data.id == "meeting-ended") {
@@ -115,10 +119,10 @@ export default class XAPI {
         event.data.id == "user-raise-hand-changed"
       ) {
         // If mic is not enabled in "user-audio-voice-enabled" event, do not send statement
-        if(event.data.id == "user-audio-voice-enabled" && 
-        (event.data.attributes.user["listening-only"] == true || 
-        event.data.attributes.user.muted == true ||
-        event.data.attributes.user["sharing-mic"] == false) ){
+        if (event.data.id == "user-audio-voice-enabled" &&
+          (event.data.attributes.user["listening-only"] == true ||
+            event.data.attributes.user.muted == true ||
+            event.data.attributes.user["sharing-mic"] == false)) {
           return;
         }
         const internal_user_id =
@@ -126,6 +130,10 @@ export default class XAPI {
         const user_data = internal_user_id
           ? await this.userStorage.getUserData(internal_user_id)
           : null;
+        // Do not proceed if user_data is requested but not found on the storage
+        if (user_data === undefined) {
+          return;
+        }
         XAPIStatement = getXAPIStatement(event, meeting_data, user_data);
       } else if (event.data.id == "chat-group-message-sent") {
         const user_data = event.data.attributes["chat-message"]?.sender;
@@ -158,6 +166,10 @@ export default class XAPI {
           poll_data = object_id
             ? await this.pollStorage.getPollData(object_id)
             : null;
+          // Do not proceed if poll_data is requested but not found on the storage
+          if (poll_data === undefined) {
+            return;
+          }
           poll_data.choices = poll_data.choices.map((item) => {
             const parsedItem = JSON.parse(item);
             const description = JSON.parse(parsedItem.description);
@@ -175,8 +187,8 @@ export default class XAPI {
         );
       }
     }
-    if(XAPIStatement !== null){
-        await this.postToLRS(XAPIStatement);
+    if (XAPIStatement !== null) {
+      await this.postToLRS(XAPIStatement);
     }
   }
 }
