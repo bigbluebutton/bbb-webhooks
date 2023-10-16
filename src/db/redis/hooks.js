@@ -22,7 +22,9 @@ import { StorageCompartmentKV } from './base-storage.js';
 // and send up to 10 events in every post
 class HookCompartment extends StorageCompartmentKV {
   static itemDeserializer(data) {
-    const { id, ...payload } = data;
+    // hookID destructuring is here for backwards compatibility with previous
+    // versions of the hooks app.
+    const { id: rID, hookID, ...payload } = data;
     const parsedPayload = {
       callbackURL: payload.callbackURL,
       externalMeetingID: payload.externalMeetingID,
@@ -35,7 +37,7 @@ class HookCompartment extends StorageCompartmentKV {
     };
 
     return {
-      id,
+      id: rID || hookID,
       ...parsedPayload,
     };
   }
