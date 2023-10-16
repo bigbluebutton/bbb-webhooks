@@ -62,7 +62,7 @@ export default class XAPI {
       uuid_namespace
     );
 
-    let XAPIStatement;
+    let XAPIStatement = null;
 
     // if meeting-created event, set meeting_data on redis
     if (event.data.id == "meeting-created") {
@@ -175,6 +175,8 @@ export default class XAPI {
         );
       }
     }
-    await this.postToLRS(XAPIStatement);
+    if(XAPIStatement !== null){
+        await this.postToLRS(XAPIStatement);
+    }
   }
 }
