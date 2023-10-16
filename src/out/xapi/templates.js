@@ -20,6 +20,8 @@ export default function getXAPIStatement(event, meeting_data, user_data = null, 
   || event.data.id == 'user-left'
   || event.data.id == 'user-audio-voice-enabled'
   || event.data.id == 'user-audio-voice-disabled'
+  || event.data.id == "user-audio-muted"
+  || event.data.id == "user-audio-unmuted"
   || event.data.id == 'user-cam-broadcast-start'
   || event.data.id == 'user-cam-broadcast-end'
   || event.data.id == 'meeting-screenshare-started'
@@ -34,6 +36,8 @@ export default function getXAPIStatement(event, meeting_data, user_data = null, 
       'user-left': 'http://activitystrea.ms/leave',
       'user-audio-voice-enabled': 'http://adlnet.gov/expapi/verbs/interacted',
       'user-audio-voice-disabled': 'http://adlnet.gov/expapi/verbs/interacted',
+      'user-audio-muted': 'http://adlnet.gov/expapi/verbs/interacted',
+      'user-audio-unmuted': 'http://adlnet.gov/expapi/verbs/interacted',
       'user-cam-broadcast-start': 'http://adlnet.gov/expapi/verbs/interacted',
       'user-cam-broadcast-end': 'http://adlnet.gov/expapi/verbs/interacted',
       'meeting-screenshare-started': 'http://adlnet.gov/expapi/verbs/interacted',
@@ -99,6 +103,8 @@ export default function getXAPIStatement(event, meeting_data, user_data = null, 
     // Custom attributes for multiple interactions
     else if (event.data.id == 'user-audio-voice-enabled'
     || event.data.id == 'user-audio-voice-disabled'
+    || event.data.id == "user-audio-muted"
+    || event.data.id == "user-audio-unmuted"
     || event.data.id == 'user-cam-broadcast-start'
     || event.data.id == 'user-cam-broadcast-end'
     || event.data.id == 'meeting-screenshare-started'
@@ -107,6 +113,8 @@ export default function getXAPIStatement(event, meeting_data, user_data = null, 
       const extension = {
         "user-audio-voice-enabled": "micro-activated",
         "user-audio-voice-disabled": "micro-activated",
+        "user-audio-muted": "micro-activated",
+        "user-audio-unmuted": "micro-activated",
         "user-cam-broadcast-start": "camera-activated",
         "user-cam-broadcast-end": "camera-activated",
         "meeting-screenshare-started": "screen-shared",
@@ -118,6 +126,8 @@ export default function getXAPIStatement(event, meeting_data, user_data = null, 
       const extension_enabled = {
         "user-audio-voice-enabled": "true",
         "user-audio-voice-disabled": "false",
+        "user-audio-muted": "false",
+        "user-audio-unmuted": "true",
         "user-cam-broadcast-start": "true",
         "user-cam-broadcast-end": "false",
         "meeting-screenshare-started": "true",
