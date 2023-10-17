@@ -6,8 +6,8 @@ export class meetingCompartment extends StorageCompartmentKV {
     }
 
     async addOrUpdateMeetingData(meeting_data) {
-        const {internal_meeting_id, context_registration, bbb_origin_server_name,
-            planned_duration, create_time, meeting_name} = meeting_data;
+        const { internal_meeting_id, context_registration, bbb_origin_server_name,
+            planned_duration, create_time, meeting_name } = meeting_data;
 
         const payload = {
             internal_meeting_id,
@@ -27,7 +27,7 @@ export class meetingCompartment extends StorageCompartmentKV {
     }
 
     async addOrUpdateUserData(user_data) {
-        const {internal_user_id, user_name} = user_data;
+        const { internal_user_id, user_name } = user_data;
 
         const payload = {
             internal_user_id,
@@ -59,7 +59,7 @@ export class userCompartment extends StorageCompartmentKV {
     }
 
     async addOrUpdateUserData(user_data) {
-        const {internal_user_id, user_name} = user_data;
+        const { internal_user_id, user_name } = user_data;
 
         const payload = {
             internal_user_id,
@@ -91,7 +91,7 @@ export class pollCompartment extends StorageCompartmentKV {
     }
 
     async addOrUpdatePollData(poll_data) {
-        const {object_id, question, choices} = poll_data;
+        const { object_id, question, choices } = poll_data;
 
         const payload = {
             object_id,
