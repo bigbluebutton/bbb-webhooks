@@ -7,7 +7,7 @@ export class meetingCompartment extends StorageCompartmentKV {
 
     async addOrUpdateMeetingData(meeting_data) {
         const { internal_meeting_id, context_registration, bbb_origin_server_name,
-            planned_duration, create_time, meeting_name } = meeting_data;
+            planned_duration, create_time, meeting_name, xapi_enabled } = meeting_data;
 
         const payload = {
             internal_meeting_id,
@@ -16,28 +16,13 @@ export class meetingCompartment extends StorageCompartmentKV {
             planned_duration,
             create_time,
             meeting_name,
+            xapi_enabled,
         };
 
         const mapping = await this.save(payload, {
             alias: internal_meeting_id,
         });
         this.logger.info(`added meeting data to the list ${internal_meeting_id}: ${mapping.print()}`);
-
-        return mapping;
-    }
-
-    async addOrUpdateUserData(user_data) {
-        const { internal_user_id, user_name } = user_data;
-
-        const payload = {
-            internal_user_id,
-            user_name,
-        };
-
-        const mapping = await this.save(payload, {
-            alias: internal_user_id,
-        });
-        this.logger.info(`added user data to the list ${internal_user_id}: ${mapping.print()}`);
 
         return mapping;
     }
@@ -69,7 +54,7 @@ export class userCompartment extends StorageCompartmentKV {
         const mapping = await this.save(payload, {
             alias: internal_user_id,
         });
-        this.logger.info(`added poll data to the list ${internal_user_id}: ${mapping.print()}`);
+        this.logger.info(`added user data to the list ${internal_user_id}: ${mapping.print()}`);
 
         return mapping;
     }
@@ -102,7 +87,7 @@ export class pollCompartment extends StorageCompartmentKV {
         const mapping = await this.save(payload, {
             alias: object_id,
         });
-        this.logger.info(`added user data to the list ${object_id}: ${mapping.print()}`);
+        this.logger.info(`added poll data to the list ${object_id}: ${mapping.print()}`);
 
         return mapping;
     }

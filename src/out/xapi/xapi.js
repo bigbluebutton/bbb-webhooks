@@ -71,6 +71,7 @@ export default class XAPI {
         meeting_data.planned_duration = event.data.attributes.meeting.duration;
         meeting_data.create_time = event.data.attributes.meeting["create-time"];
         meeting_data.meeting_name = event.data.attributes.meeting.name;
+        meeting_data.xapi_enabled = event.data.attributes.meeting.metadata?.["meta_xapi-enabled"] !== 'false' ? 'true' : 'false';
 
         const meeting_create_day = DateTime.fromMillis(
           meeting_data.create_time
@@ -78,12 +79,19 @@ export default class XAPI {
         const external_key = `${meeting_data.external_meeting_id}_${meeting_create_day}`;
 
         meeting_data.context_registration = uuidv5(external_key, uuid_namespace);
+        //set meeting_data on redis
         try {
           await this.meetingStorage.addOrUpdateMeetingData(meeting_data);
           resolve();
         } catch (error) {
           return reject(error);
         }
+
+        // Do not proceed if xapi_enabled === 'false' was passed in the metadata
+        if (meeting_data.xapi_enabled === 'false') {
+          return reject();
+        }
+
         XAPIStatement = getXAPIStatement(event, meeting_data);
       }
       // if not meeting-created event, read meeting_data from redis
@@ -96,6 +104,11 @@ export default class XAPI {
           return reject();
         }
         Object.assign(meeting_data, meeting_data_storage);
+
+        // Do not proceed if xapi_enabled === 'false' was passed in the metadata
+        if (meeting_data.xapi_enabled === 'false') {
+          return reject();
+        }
 
         if (event.data.id == "meeting-ended") {
           resolve();
@@ -178,6 +191,7 @@ export default class XAPI {
               question: event.data.attributes.poll.question,
               choices,
             };
+            //set poll_data on redis
             try {
               await this.pollStorage.addOrUpdatePollData(poll_data);
               resolve();
@@ -209,7 +223,7 @@ export default class XAPI {
           );
         }
       }
-      if (XAPIStatement !== null) {
+      if (XAPIStatement !== null && meeting_data.xapi_enabled === 'true') {
         await this.postToLRS(XAPIStatement);
       }
     });
