@@ -71,7 +71,7 @@ export default class XAPI {
         meeting_data.planned_duration = event.data.attributes.meeting.duration;
         meeting_data.create_time = event.data.attributes.meeting["create-time"];
         meeting_data.meeting_name = event.data.attributes.meeting.name;
-        meeting_data.xapi_enabled = event.data.attributes.meeting.metadata?.["meta_xapi-enabled"] !== 'false' ? 'true' : 'false';
+        meeting_data.xapi_enabled = event.data.attributes.meeting.metadata?.["xapi-enabled"] !== 'false' ? 'true' : 'false';
 
         const meeting_create_day = DateTime.fromMillis(
           meeting_data.create_time
