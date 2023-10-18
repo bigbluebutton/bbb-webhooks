@@ -171,10 +171,10 @@ class WebHooks {
         return resolve();
       });
 
-      emitter.on(CallbackEmitter.EVENTS.FAILED, (error) => {
+      emitter.on(CallbackEmitter.EVENTS.FAILURE, (error) => {
         this._exporter.agent.increment(METRIC_NAMES.HOOK_FAILURES, {
           callbackURL: hook.payload.callbackURL,
-          reason: error.message,
+          reason: error.code || error.name || 'unknown',
           eventId,
         });
       });
@@ -224,7 +224,9 @@ class WebHooks {
       if (!hook.payload.getRaw) {
         this.logger.info('dispatching event to hook', { callbackURL: hook.payload.callbackURL });
         return this.dispatch(event, hook).catch((error) => {
-          this.logger.error('failed to enqueue', { calbackURL: hook.payload.callbackURL, error: error.stack });
+          this.logger.error('failed to enqueue', {
+            calbackURL: hook.payload.callbackURL, error: error.stack
+          });
         });
       } else {
         return this._processRaw(hook, raw);

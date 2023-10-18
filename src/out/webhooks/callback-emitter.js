@@ -5,13 +5,17 @@ import fetch from 'node-fetch';
 
 // A simple string that identifies the event
 const simplifiedEvent = (_event) => {
-  let event = _event.event ? _event.event : _event;
 
   try {
-    const parsedEvent = JSON.parse(event);
-    return `event: { name: ${parsedEvent?.data?.id}, timestamp: ${(parsedEvent?.data?.event?.ts)} }`;
+    const event = typeof _event === 'string'
+      ? JSON.parse(_event)
+      : _event.event
+        ? _event.event
+        : _event;
+
+    return `event: { name: ${event?.data?.id}, timestamp: ${(event?.data?.event?.ts)} }`;
   } catch (error) {
-    return `event: ${event}`;
+    return `event: ${_event}`;
   }
 };
 
@@ -47,7 +51,7 @@ export default class CallbackEmitter extends EventEmitter {
     super();
     this.callbackURL = callbackURL;
     this.event = event;
-    this.message = JSON.stringify(event);
+    this.eventStr = JSON.stringify(event);
     this.nextInterval = 0;
     this.timestamp = 0;
     this.permanent = permanent;
@@ -61,7 +65,6 @@ export default class CallbackEmitter extends EventEmitter {
     }
 
     this._dispatched = false;
-    this._permanentIntervalReset = permanentIntervalReset || 8;
     this._serverDomain = domain;
     this._secret = secret;
     this._bearerAuth = auth2_0;
@@ -74,6 +77,7 @@ export default class CallbackEmitter extends EventEmitter {
       10000,
       30000,
     ];
+    this._permanentIntervalReset = permanentIntervalReset || 60000;
     this._checksumAlgorithm = checksumAlgorithm;
   }
 
@@ -90,15 +94,14 @@ export default class CallbackEmitter extends EventEmitter {
         const interval = this._retryIntervals[this.nextInterval];
 
         if (interval != null) {
-          this.logger.warn(`trying the callback again in ${interval/1000.0} secs: ${this.callbackURL}`, error);
+          this.logger.warn(`trying the callback again in ${interval/1000.0} secs: ${this.callbackURL}`);
           this.nextInterval++;
           this._scheduleNext(interval);
           // no intervals anymore, time to give up
         } else {
-          this.nextInterval = this._permanentIntervalReset;
-
           if (this.permanent){
-            this._scheduleNext(this.nextInterval);
+            this.logger.warn(`callback retries expired, but it's permanent - try the callback again in ${this._permanentIntervalReset/1000.0} secs: ${this.callbackURL}`);
+            this._scheduleNext(this._permanentIntervalReset);
           } else {
             this.emit(CallbackEmitter.EVENTS.STOPPED);
           }
@@ -117,7 +120,7 @@ export default class CallbackEmitter extends EventEmitter {
     // note: keep keys in alphabetical order
     const data = new URLSearchParams({
       domain: serverDomain,
-      event: "[" + this.message + "]",
+      event: "[" + this.eventStr + "]",
       timestamp: this.timestamp,
     });
     const requestOptions = {
@@ -159,19 +162,32 @@ export default class CallbackEmitter extends EventEmitter {
       controller.abort();
     }, timeout);
     requestOptions.signal = controller.signal;
-    const stringifiedEvent = simplifiedEvent(data);
+    const stringifiedEvent = simplifiedEvent(this.event);
 
     try {
       const response = await fetch(callbackURL, requestOptions);
 
       if (responseFailed(response)) {
-        this.logger.warn(`error in the callback call to: [${callbackURL}] for ${stringifiedEvent} status: ${response != null ? response.status: undefined}`);
-        throw new Error(response.statusText);
+        const failedResponseError = new Error(
+          `Invalid response: ${response?.status || 'unknown'}` || 'unknown error',
+        );
+        failedResponseError.code = response?.status;
       }
 
-      this.logger.info(`successful callback call to: [${callbackURL}] for ${stringifiedEvent}`);
+      this.logger.info(`successful callback call to: [${callbackURL}]`, {
+        event: stringifiedEvent,
+        status: response?.status,
+        statusText: response?.statusText,
+      });
     } catch (error) {
-      this.logger.warn(`error in the callback call to: [${callbackURL}] for ${stringifiedEvent}`, error);
+      if (error.code == null) error.code = 'unknown';
+      this.logger.warn(`error in the callback call to: [${callbackURL}]`, {
+        event: stringifiedEvent,
+        errorMessage: error?.message,
+        errorName: error?.name,
+        errorCode: error.code,
+        stack: error?.stack,
+      });
       throw error;
     } finally {
       clearTimeout(abortTimeout);
