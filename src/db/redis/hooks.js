@@ -86,6 +86,7 @@ class HookCompartment extends StorageCompartmentKV {
   }
 
   async addSubscription({
+    id,
     callbackURL,
     meetingID,
     eventID,
@@ -110,9 +111,9 @@ class HookCompartment extends StorageCompartmentKV {
     }
 
     this.logger.info(`adding a hook with callback URL: [${callbackURL}]`, { payload });
-    const id = permanent ? uuidv5(callbackURL, uuidv5.URL) : uuidv4();
+    const finalID = id || (permanent ? uuidv5(callbackURL, uuidv5.URL) : uuidv4());
     hook = await this.save(payload, {
-      id,
+      id: finalID,
       alias: callbackURL,
     });
 
@@ -143,14 +144,38 @@ class HookCompartment extends StorageCompartmentKV {
     return this.find(id);
   }
 
-  firstSync() {
-    const keys = Object.keys(this.localStorage);
-    if (keys.length > 0) return this.localStorage[keys[0]];
-    return null;
-  }
-
   getAllGlobalHooks() {
     return this.getAll().filter(hook => this.isGlobal(hook));
+  }
+
+  // Gets all mappings from redis to populate the local database.
+  async resync() {
+    try {
+      const mappings = await this.redisClient.sMembers(this.setId);
+
+      this.logger.info(`starting hooks resync, mappings registered: [${mappings}]`);
+      if (mappings != null && mappings.length > 0) {
+        for (let id of mappings) {
+          try {
+            const data = await this.redisClient.hGetAll(this.prefix + ":" + id);
+            const payloadWithID = this.deserialize(data);
+
+            if (payloadWithID && Object.keys(payloadWithID).length > 0) {
+              await this.addSubscription(payloadWithID);
+            }
+          } catch (error) {
+            this.logger.error('error getting information for a mapping from redis', error);
+          }
+        }
+
+        const stringifiedMappings = this.getAll().map(m => m.print());
+        this.logger.info(`finished resync, mappings registered: [${stringifiedMappings}]`);
+      } else {
+        this.logger.info(`finished resync, no mappings registered`);
+      }
+    } catch (error) {
+      this.logger.error('error getting list of mappings from redis', error);
+    }
   }
 
   // Initializes global methods for this model.
