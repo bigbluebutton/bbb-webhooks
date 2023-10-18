@@ -18,7 +18,7 @@ const REDIS_CONF = {
   password: config.has('redis.password') ? config.get('redis.password') : undefined,
 }
 REDIS_CONF.REDIS_URL = `redis://${REDIS_CONF.password ? `:${REDIS_CONF.password}@` : ''}${REDIS_CONF.host}:${REDIS_CONF.port}`;
-const BASE_CONFIGURATION = {
+const BASE_CONFIGURATION = Object.freeze({
   server: {
     domain: config.get('bbb.serverDomain'),
     secret: config.get('bbb.sharedSecret'),
@@ -30,7 +30,7 @@ const BASE_CONFIGURATION = {
     password: REDIS_CONF.password,
     url: REDIS_CONF.REDIS_URL,
   },
-}
+});
 
 export default class ModuleManager {
   static moduleTypes = MODULE_TYPES;
@@ -57,7 +57,9 @@ export default class ModuleManager {
   }
 
   _buildContext(configuration) {
-    configuration.config = { ...BASE_CONFIGURATION, ...configuration.config };
+    const base = config.util.cloneDeep(BASE_CONFIGURATION);
+    const extended = config.util.extendDeep(base, configuration.config, 8);
+    configuration.config = extended;
     const utils = {
       exporter: Exporter,
     };
