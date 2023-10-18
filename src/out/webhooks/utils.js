@@ -152,7 +152,7 @@ const isEmpty = (obj) => [Object, Array].includes((obj || {}).constructor)
 /**
  * sortBy - Sorts an array of objects by a key.
  * @param {string|number} key - The key to sort by.
- * @returns {function} - A function that can be used to sort an array of objects by the given key.
+ * @returns {Function} - A function that can be used to sort an array of objects by the given key.
  * @public
  */
 const sortBy = (key) => (a, b) => {

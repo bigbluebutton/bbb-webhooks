@@ -76,7 +76,7 @@ class OutWebHooks {
       const hooks = HookCompartment.get().getAll();
       this._exporter.agent.reset([METRIC_NAMES.REGISTERED_HOOKS]);
       hooks.forEach(hook => {
-        this._exporter.agent.set(METRIC_NAMES.REGISTERED_HOOKS, 1, {
+        this._exporter.agent.increment(METRIC_NAMES.REGISTERED_HOOKS, {
           callbackURL: hook.payload.callbackURL,
           permanent: hook.payload.permanent,
           getRaw: hook.payload.getRaw,
