@@ -156,6 +156,7 @@ class WebHooks {
           requestTimeout: this.config.requestTimeout,
           retryIntervals: this.config.retryIntervals,
           checksumAlgorithm: this.config.hookChecksumAlgorithm,
+          logger: this.logger,
         }
       );
 
