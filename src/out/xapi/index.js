@@ -1,7 +1,6 @@
 import XAPI from './xapi.js';
 import { meetingCompartment, userCompartment, pollCompartment } from './compartment.js';
-import redis from 'redis';
-import config from 'config';
+import { createClient } from 'redis';
 /*
  *  [MODULE_TYPES.OUTPUT]: {
  *   load: 'function',
@@ -37,10 +36,10 @@ export default class OutXAPI {
 
   async load() {
     if (this._validateConfig()) {
-      this.redisClient = redis.createClient({
-        host: config.get('redis.host'),
-        port: config.get('redis.port'),
-        password: config.has('redis.password') ? config.get('redis.password') : undefined,
+      const { url, password, host, port } = this.config.redis || this.config;
+      const redisUrl = url || `redis://${password ? `:${password}@` : ''}${host}:${port}`;
+      this.redisClient = createClient({
+        url: redisUrl,
       });
 
       await this.redisClient.connect();
