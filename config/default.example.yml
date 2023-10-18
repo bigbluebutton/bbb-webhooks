@@ -28,13 +28,12 @@ redis:
   host: 127.0.0.1
   port: 6379
   keys:
-    hookPrefix: bigbluebutton:webhooks:hook
-    hooks: bigbluebutton:webhooks:hooks
-    mappings: bigbluebutton:webhooks:mappings
-    mappingPrefix: bigbluebutton:webhooks:mapping
-    eventsPrefix: bigbluebutton:webhooks:events
-    userMaps: bigbluebutton:webhooks:userMaps
-    userMapPrefix: bigbluebutton:webhooks:userMap
+    hookPrefix: bigbluebutton:webhooks:out:hook
+    hooks: bigbluebutton:webhooks:out:hooks
+    mappings: bigbluebutton:webhooks:proc:mappings
+    mappingPrefix: bigbluebutton:webhooks:proc:mapping
+    userMaps: bigbluebutton:webhooks:proc:userMaps
+    userMapPrefix: bigbluebutton:webhooks:proc:userMap
 
 # Basic module config entry template:
 #   key: <relative file path to app root if drop-in or module name if npm/github>,
