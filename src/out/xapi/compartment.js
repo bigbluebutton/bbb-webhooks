@@ -6,13 +6,13 @@ export class meetingCompartment extends StorageCompartmentKV {
     }
 
     async addOrUpdateMeetingData(meeting_data) {
-        const { internal_meeting_id, context_registration, bbb_origin_server_name,
+        const { internal_meeting_id, context_registration, server_domain,
             planned_duration, create_time, meeting_name, xapi_enabled } = meeting_data;
 
         const payload = {
             internal_meeting_id,
             context_registration,
-            bbb_origin_server_name,
+            server_domain,
             planned_duration,
             create_time,
             meeting_name,

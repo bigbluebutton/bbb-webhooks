@@ -1,7 +1,14 @@
 import { DateTime, Duration } from 'luxon';
 
+/**
+ *
+ * @param event
+ * @param meeting_data
+ * @param user_data
+ * @param poll_data
+ */
 export default function getXAPIStatement(event, meeting_data, user_data = null, poll_data = null) {
-  const { bbb_origin_server_name,
+  const { server_domain,
     object_id,
     meeting_name,
     context_registration,
@@ -12,36 +19,47 @@ export default function getXAPIStatement(event, meeting_data, user_data = null, 
   const planned_duration_ISO = Duration.fromObject({ minutes: planned_duration }).toISO();
   const create_time_ISO = DateTime.fromMillis(create_time).toUTC().toISO();
 
-  const event_ts = event.data.event.ts;
+  const eventId = event.data.id;
+  const eventTs = event.data.event.ts;
 
-  if (event.data.id == 'meeting-created'
-    || event.data.id == 'meeting-ended'
-    || event.data.id == 'user-joined'
-    || event.data.id == 'user-left'
-    || event.data.id == 'user-audio-voice-enabled'
-    || event.data.id == 'user-audio-voice-disabled'
-    || event.data.id == "user-audio-muted"
-    || event.data.id == "user-audio-unmuted"
-    || event.data.id == 'user-cam-broadcast-start'
-    || event.data.id == 'user-cam-broadcast-end'
-    || event.data.id == 'meeting-screenshare-started'
-    || event.data.id == 'meeting-screenshare-stopped'
-    || event.data.id == 'chat-group-message-sent'
-    || event.data.id == 'poll-started'
-    || event.data.id == 'poll-responded') {
+  const session_parent = [
+    {
+      "id": `https://${server_domain}/xapi/activities/${object_id}`,
+      "definition": {
+        "type": "https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom"
+      }
+    }
+  ]
+
+  if (eventId == 'meeting-created'
+    || eventId == 'meeting-ended'
+    || eventId == 'user-joined'
+    || eventId == 'user-left'
+    || eventId == 'user-audio-voice-enabled'
+    || eventId == 'user-audio-voice-disabled'
+    || eventId == "user-audio-muted"
+    || eventId == "user-audio-unmuted"
+    || eventId == 'user-cam-broadcast-start'
+    || eventId == 'user-cam-broadcast-end'
+    || eventId == 'meeting-screenshare-started'
+    || eventId == 'meeting-screenshare-stopped'
+    || eventId == 'chat-group-message-sent'
+    || eventId == 'poll-started'
+    || eventId == 'poll-responded'
+    || eventId == 'user-raise-hand-changed') {
     const verbMappings = {
       'meeting-created': 'http://adlnet.gov/expapi/verbs/initialized',
       'meeting-ended': 'http://adlnet.gov/expapi/verbs/terminated',
       'user-joined': 'http://activitystrea.ms/join',
       'user-left': 'http://activitystrea.ms/leave',
-      'user-audio-voice-enabled': 'http://adlnet.gov/expapi/verbs/interacted',
-      'user-audio-voice-disabled': 'http://adlnet.gov/expapi/verbs/interacted',
-      'user-audio-muted': 'http://adlnet.gov/expapi/verbs/interacted',
-      'user-audio-unmuted': 'http://adlnet.gov/expapi/verbs/interacted',
-      'user-cam-broadcast-start': 'http://adlnet.gov/expapi/verbs/interacted',
-      'user-cam-broadcast-end': 'http://adlnet.gov/expapi/verbs/interacted',
-      'meeting-screenshare-started': 'http://adlnet.gov/expapi/verbs/interacted',
-      'meeting-screenshare-stopped': 'http://adlnet.gov/expapi/verbs/interacted',
+      'user-audio-voice-enabled': 'http://activitystrea.ms/start',
+      'user-audio-voice-disabled': 'https://w3id.org/xapi/virtual-classroom/verbs/stopped',
+      'user-audio-muted': 'https://w3id.org/xapi/virtual-classroom/verbs/stopped',
+      'user-audio-unmuted': 'http://activitystrea.ms/start',
+      'user-cam-broadcast-start': 'http://activitystrea.ms/start',
+      'user-cam-broadcast-end': 'https://w3id.org/xapi/virtual-classroom/verbs/stopped',
+      'meeting-screenshare-started': 'http://activitystrea.ms/share',
+      'meeting-screenshare-stopped': 'http://activitystrea.ms/unshare',
       'chat-group-message-sent': 'https://w3id.org/xapi/acrossx/verbs/posted',
       'poll-started': 'http://adlnet.gov/expapi/verbs/asked',
       'poll-responded': 'http://adlnet.gov/expapi/verbs/answered',
@@ -52,14 +70,14 @@ export default function getXAPIStatement(event, meeting_data, user_data = null, 
       "actor": {
         "account": {
           "name": user_data?.user_name || "<unknown>",
-          "homePage": `https://${bbb_origin_server_name}`
+          "homePage": `https://${server_domain}`
         }
       },
       "verb": {
-        "id": verbMappings.hasOwnProperty(event.data.id) ? verbMappings[event.data.id] : null
+        "id": Object.prototype.hasOwnProperty.call(verbMappings, eventId) ? verbMappings[eventId] : null
       },
       "object": {
-        "id": `https://${bbb_origin_server_name}/xapi/activities/${object_id}`,
+        "id": `https://${server_domain}/xapi/activities/${object_id}`,
         "definition": {
           "type": "https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom",
           "name": {
@@ -83,32 +101,32 @@ export default function getXAPIStatement(event, meeting_data, user_data = null, 
           "https://w3id.org/xapi/cmi5/context/extensions/sessionid": session_id
         }
       },
-      "timestamp": DateTime.fromMillis(event_ts).toUTC().toISO()
+      "timestamp": DateTime.fromMillis(eventTs).toUTC().toISO()
     }
 
     // Custom 'meeting-created' attributes
-    if (event.data.id == 'meeting-created') {
+    if (eventId == 'meeting-created') {
       statement.context.extensions["http://id.tincanapi.com/extension/planned-duration"] = planned_duration_ISO
       statement.timestamp = create_time_ISO;
     }
 
     // Custom 'meeting-ended' attributes
-    else if (event.data.id == 'meeting-ended') {
+    else if (eventId == 'meeting-ended') {
       statement.context.extensions["http://id.tincanapi.com/extension/planned-duration"] = planned_duration_ISO
       statement.result = {
-        "duration": Duration.fromMillis(event_ts - create_time).toISO()
+        "duration": Duration.fromMillis(eventTs - create_time).toISO()
       }
     }
 
     // Custom attributes for multiple interactions
-    else if (event.data.id == 'user-audio-voice-enabled'
-      || event.data.id == 'user-audio-voice-disabled'
-      || event.data.id == "user-audio-muted"
-      || event.data.id == "user-audio-unmuted"
-      || event.data.id == 'user-cam-broadcast-start'
-      || event.data.id == 'user-cam-broadcast-end'
-      || event.data.id == 'meeting-screenshare-started'
-      || event.data.id == 'meeting-screenshare-stopped') {
+    else if (eventId == 'user-audio-voice-enabled'
+      || eventId == 'user-audio-voice-disabled'
+      || eventId == "user-audio-muted"
+      || eventId == "user-audio-unmuted"
+      || eventId == 'user-cam-broadcast-start'
+      || eventId == 'user-cam-broadcast-end'
+      || eventId == 'meeting-screenshare-started'
+      || eventId == 'meeting-screenshare-stopped') {
 
       const extension = {
         "user-audio-voice-enabled": "micro-activated",
@@ -119,7 +137,7 @@ export default function getXAPIStatement(event, meeting_data, user_data = null, 
         "user-cam-broadcast-end": "camera-activated",
         "meeting-screenshare-started": "screen-shared",
         "meeting-screenshare-stopped": "screen-shared",
-      }[event.data.id]
+      }[eventId]
 
       const extension_uri = `https://w3id.org/xapi/virtual-classroom/extensions/${extension}`;
 
@@ -132,42 +150,43 @@ export default function getXAPIStatement(event, meeting_data, user_data = null, 
         "user-cam-broadcast-end": "false",
         "meeting-screenshare-started": "true",
         "meeting-screenshare-stopped": "false",
-      }[event.data.id]
+      }[eventId]
 
       statement.context.extensions[extension_uri] = extension_enabled;
+      // TODO: implement new format for multimedia statements
+      // statement.context.contextActivities.parent = session_parent;
     }
 
     // Custom 'user-raise-hand-changed' attributes
-    else if (event.data.id == 'user-raise-hand-changed') {
-      const extension_uri = 'https://w3id.org/xapi/virtual-classroom/extensions/hand-raised';
-      const extension_enabled = event.data.attributes.user["raise-hand"];
-      statement.context.extensions[extension_uri] = extension_enabled;
+    else if (eventId == 'user-raise-hand-changed') {
+      const raisedHandVerb = "https://w3id.org/xapi/virtual-classroom/verbs/reacted";
+      const loweredHandVerb = "https://w3id.org/xapi/virtual-classroom/verbs/unreacted";
+      const isRaiseHand = event.data.attributes.user["raise-hand"];
+      statement.verb = isRaiseHand ? raisedHandVerb : loweredHandVerb;
+      statement.result = {
+        "extensions": {
+          "https://w3id.org/xapi/virtual-classroom/extensions/emoji": "U+1F590"
+        }
+      }
     }
 
     // Custom 'chat-group-message-sent' attributes
-    else if (event.data.id == 'chat-group-message-sent') {
+    else if (eventId == 'chat-group-message-sent') {
       statement.object = {
-        "id": `https://${bbb_origin_server_name}/xapi/activities/${user_data?.msg_object_id}`,
+        "id": `https://${server_domain}/xapi/activities/${user_data?.msg_object_id}`,
         "definition": {
           "type": "https://w3id.org/xapi/acrossx/activities/message"
         }
       }
 
-      statement.context.contextActivities.parent = [
-        {
-          "id": `https://${bbb_origin_server_name}/xapi/activities/${object_id}`,
-          "definition": {
-            "type": "https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom"
-          }
-        }
-      ]
+      statement.context.contextActivities.parent = session_parent;
       statement.timestamp = user_data?.time;
     }
 
     // Custom 'poll-started' and 'poll-responded' attributes
-    else if (event.data.id == 'poll-started' || event.data.id == 'poll-responded') {
+    else if (eventId == 'poll-started' || eventId == 'poll-responded') {
       statement.object = {
-        "id": `https://${bbb_origin_server_name}/xapi/activities/${poll_data?.object_id}`,
+        "id": `https://${server_domain}/xapi/activities/${poll_data?.object_id}`,
         "definition": {
           "description": {
             "en": poll_data?.question,
@@ -178,15 +197,8 @@ export default function getXAPIStatement(event, meeting_data, user_data = null, 
         }
       }
 
-      statement.context.contextActivities.parent = [
-        {
-          "id": `https://${bbb_origin_server_name}/xapi/activities/${object_id}`,
-          "definition": {
-            "type": "https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom"
-          }
-        }
-      ]
-      if (event.data.id == 'poll-responded') {
+      statement.context.contextActivities.parent = session_parent;
+      if (eventId == 'poll-responded') {
         statement.result = {
           "response": event.data.attributes.poll.answerIds.join(','),
         }
@@ -195,4 +207,5 @@ export default function getXAPIStatement(event, meeting_data, user_data = null, 
 
     return statement
   }
+  else return null;
 }

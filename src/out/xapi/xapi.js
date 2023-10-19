@@ -13,6 +13,24 @@ export default class XAPI {
     this.meetingStorage = meetingStorage;
     this.userStorage = userStorage;
     this.pollStorage = pollStorage;
+    this.validEvents = [
+      'chat-group-message-sent',
+      'meeting-created',
+      'meeting-ended',
+      'meeting-screenshare-started',
+      'meeting-screenshare-stopped',
+      'poll-started',
+      'poll-responded',
+      'user-audio-muted',
+      'user-audio-unmuted',
+      'user-audio-voice-disabled',
+      'user-audio-voice-enabled',
+      'user-joined',
+      'user-left',
+      'user-cam-broadcast-end',
+      'user-cam-broadcast-start',
+      'user-raise-hand-changed'
+    ]
   }
 
   async postToLRS(statement) {
@@ -45,6 +63,10 @@ export default class XAPI {
   }
 
   async onEvent(event, raw) {
+    const eventId = event.data.id;
+
+    if (this.validEvents.indexOf(eventId) <= -1) return Promise.resolve
+
     const meeting_data = {
       internal_meeting_id: event.data.attributes.meeting["internal-meeting-id"],
       external_meeting_id: event.data.attributes.meeting["external-meeting-id"],
@@ -65,9 +87,8 @@ export default class XAPI {
 
     return new Promise(async (resolve, reject) => {
       // if meeting-created event, set meeting_data on redis
-      if (event.data.id == "meeting-created") {
-        const serverDomain = this.config.server.domain;
-        meeting_data.bbb_origin_server_name = serverDomain;
+      if (eventId == "meeting-created") {
+        meeting_data.server_domain = this.config.server.domain;
         meeting_data.planned_duration = event.data.attributes.meeting.duration;
         meeting_data.create_time = event.data.attributes.meeting["create-time"];
         meeting_data.meeting_name = event.data.attributes.meeting.name;
@@ -110,12 +131,12 @@ export default class XAPI {
           return reject();
         }
 
-        if (event.data.id == "meeting-ended") {
+        if (eventId == "meeting-ended") {
           resolve();
           XAPIStatement = getXAPIStatement(event, meeting_data);
         }
         // if user-joined event, set user_data on redis
-        else if (event.data.id == "user-joined") {
+        else if (eventId == "user-joined") {
           const user_data = {
             internal_user_id: event.data.attributes.user["internal-user-id"],
             user_name: event.data.attributes.user.name,
@@ -130,20 +151,20 @@ export default class XAPI {
         }
         // if not user-joined user event, read user_data on redis
         else if (
-          event.data.id == "user-left" ||
-          event.data.id == "user-audio-voice-enabled" ||
-          event.data.id == "user-audio-voice-disabled" ||
-          event.data.id == "user-audio-muted" ||
-          event.data.id == "user-audio-unmuted" ||
-          event.data.id == "user-cam-broadcast-start" ||
-          event.data.id == "user-cam-broadcast-end" ||
-          event.data.id == "meeting-screenshare-started" ||
-          event.data.id == "meeting-screenshare-stopped" ||
-          event.data.id == "user-raise-hand-changed"
+          eventId == "user-left" ||
+          eventId == "user-audio-voice-enabled" ||
+          eventId == "user-audio-voice-disabled" ||
+          eventId == "user-audio-muted" ||
+          eventId == "user-audio-unmuted" ||
+          eventId == "user-cam-broadcast-start" ||
+          eventId == "user-cam-broadcast-end" ||
+          eventId == "meeting-screenshare-started" ||
+          eventId == "meeting-screenshare-stopped" ||
+          eventId == "user-raise-hand-changed"
         ) {
           resolve();
           // If mic is not enabled in "user-audio-voice-enabled" event, do not send statement
-          if (event.data.id == "user-audio-voice-enabled" &&
+          if (eventId == "user-audio-voice-enabled" &&
             (event.data.attributes.user["listening-only"] == true ||
               event.data.attributes.user.muted == true ||
               event.data.attributes.user["sharing-mic"] == false)) {
@@ -160,7 +181,7 @@ export default class XAPI {
           }
           XAPIStatement = getXAPIStatement(event, meeting_data, user_data);
           // Chat message
-        } else if (event.data.id == "chat-group-message-sent") {
+        } else if (eventId == "chat-group-message-sent") {
           resolve();
           const user_data = event.data.attributes["chat-message"]?.sender;
           const msg_key = `${user_data?.internal_user_id}_${user_data?.time}`;
@@ -168,10 +189,10 @@ export default class XAPI {
           XAPIStatement = getXAPIStatement(event, meeting_data, user_data);
           // Poll events
         } else if (
-          event.data.id == "poll-started" ||
-          event.data.id == "poll-responded"
+          eventId == "poll-started" ||
+          eventId == "poll-responded"
         ) {
-          if (event.data.id == "poll-responded") {
+          if (eventId == "poll-responded") {
             resolve();
           }
           const internal_user_id =
@@ -182,7 +203,7 @@ export default class XAPI {
           const object_id = uuidv5(event.data.attributes.poll.id, uuid_namespace);
           let poll_data;
 
-          if (event.data.id == "poll-started") {
+          if (eventId == "poll-started") {
             var choices = event.data.attributes.poll.answers.map((a) => {
               return { id: a.id.toString(), description: { en: a.key } };
             });
@@ -198,7 +219,7 @@ export default class XAPI {
             } catch (error) {
               return reject(error);
             }
-          } else if (event.data.id == "poll-responded") {
+          } else if (eventId == "poll-responded") {
             poll_data = object_id
               ? await this.pollStorage.getPollData(object_id)
               : null;
