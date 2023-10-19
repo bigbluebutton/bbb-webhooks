@@ -128,33 +128,27 @@ export default function getXAPIStatement(event, meeting_data, user_data = null, 
       || eventId == 'meeting-screenshare-started'
       || eventId == 'meeting-screenshare-stopped') {
 
-      const extension = {
-        "user-audio-voice-enabled": "micro-activated",
-        "user-audio-voice-disabled": "micro-activated",
-        "user-audio-muted": "micro-activated",
-        "user-audio-unmuted": "micro-activated",
-        "user-cam-broadcast-start": "camera-activated",
-        "user-cam-broadcast-end": "camera-activated",
-        "meeting-screenshare-started": "screen-shared",
-        "meeting-screenshare-stopped": "screen-shared",
+      const media = {
+        "user-audio-voice-enabled": "micro",
+        "user-audio-voice-disabled": "micro",
+        "user-audio-muted": "micro",
+        "user-audio-unmuted": "micro",
+        "user-cam-broadcast-start": "camera",
+        "user-cam-broadcast-end": "camera",
+        "meeting-screenshare-started": "screen",
+        "meeting-screenshare-stopped": "screen",
       }[eventId]
 
-      const extension_uri = `https://w3id.org/xapi/virtual-classroom/extensions/${extension}`;
-
-      const extension_enabled = {
-        "user-audio-voice-enabled": "true",
-        "user-audio-voice-disabled": "false",
-        "user-audio-muted": "false",
-        "user-audio-unmuted": "true",
-        "user-cam-broadcast-start": "true",
-        "user-cam-broadcast-end": "false",
-        "meeting-screenshare-started": "true",
-        "meeting-screenshare-stopped": "false",
-      }[eventId]
-
-      statement.context.extensions[extension_uri] = extension_enabled;
-      // TODO: implement new format for multimedia statements
-      // statement.context.contextActivities.parent = session_parent;
+      statement.object = {
+        "id": user_data?.[`user_${media}_object_id`],
+        "definition": {
+          "type": `https://w3id.org/xapi/virtual-classroom/activity-types/${media}`,
+          "name": {
+            "en": `${user_data?.user_name}'s ${media}`
+          }
+        }
+      };
+      statement.context.contextActivities.parent = session_parent;
     }
 
     // Custom 'user-raise-hand-changed' attributes
