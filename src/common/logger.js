@@ -107,15 +107,20 @@ const _newLogger = ({
   const loggingTransports = [];
 
   if (filename) {
-    loggingTransports.push(new transports.File({
-      filename,
-      format: combine(
-        timestamp(),
-        splat(),
-        errors({ stack: true }),
-        json(),
-      )
-    }));
+    try {
+      loggingTransports.push(new transports.File({
+        filename,
+        format: combine(
+          timestamp(),
+          splat(),
+          errors({ stack: true }),
+          json(),
+        )
+      }));
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error("Failed to create file transport, won't log to file", error);
+    }
   }
 
   if (stdout) {
