@@ -195,7 +195,7 @@ export default class XAPI {
 
           const user_data = internal_user_id
             ? await this.userStorage.getUserData(internal_user_id)
-            : null;
+            : undefined;
           // Do not proceed if user_data is requested but not found on the storage
           if (user_data === undefined) {
             return;
@@ -258,7 +258,7 @@ export default class XAPI {
           } else if (eventId == "poll-responded") {
             poll_data = object_id
               ? await this.pollStorage.getPollData(object_id)
-              : null;
+              : undefined;
             // Do not proceed if poll_data is requested but not found on the storage
             if (poll_data === undefined) {
               return;
