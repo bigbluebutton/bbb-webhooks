@@ -76,7 +76,7 @@ export default class XAPI {
   async onEvent(event, raw) {
     const eventId = event.data.id;
 
-    if (this.validEvents.indexOf(eventId) <= -1) return Promise.resolve
+    if (this.validEvents.indexOf(eventId) <= -1) return Promise.resolve();
 
     const meeting_data = {
       internal_meeting_id: event.data.attributes.meeting["internal-meeting-id"],
