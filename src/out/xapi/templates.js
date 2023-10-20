@@ -140,7 +140,7 @@ export default function getXAPIStatement(event, meeting_data, user_data = null, 
       }[eventId]
 
       statement.object = {
-        "id": user_data?.[`user_${media}_object_id`],
+        "id": `https://${server_domain}/xapi/activities/${user_data?.[`user_${media}_object_id`]}`,
         "definition": {
           "type": `https://w3id.org/xapi/virtual-classroom/activity-types/${media}`,
           "name": {
