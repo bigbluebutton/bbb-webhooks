@@ -37,9 +37,12 @@ export default class XAPI {
     return uuidv5( payload, this.config.uuid_namespace );
   }
 
-  async postToLRS(statement) {
-    const { lrs_endpoint, lrs_username, lrs_password } = this.config.lrs;
-
+  async postToLRS(statement, meeting_data) {
+    let { lrs_endpoint, lrs_username, lrs_password } = this.config.lrs;
+    if (meeting_data.lrs_endpoint !== ''){
+      lrs_endpoint = meeting_data.lrs_endpoint;
+    }
+    const lrs_token = meeting_data.lrs_token;
     const headers = {
       Authorization: `Basic ${Buffer.from(
         lrs_username + ":" + lrs_password
@@ -47,6 +50,10 @@ export default class XAPI {
       "Content-Type": "application/json",
       "X-Experience-API-Version": "1.0.0",
     };
+
+    if (lrs_token !== ''){
+      headers.Authorization = `Bearer ${lrs_token}`
+    }
 
     const requestOptions = {
       method: "POST",
@@ -89,6 +96,20 @@ export default class XAPI {
         meeting_data.create_time = event.data.attributes.meeting["create-time"];
         meeting_data.meeting_name = event.data.attributes.meeting.name;
         meeting_data.xapi_enabled = event.data.attributes.meeting.metadata?.["xapi-enabled"] !== 'false' ? 'true' : 'false';
+
+        const lrs_payload = event.data.attributes.meeting.metadata?.["secret_lrs-payload"];
+        let lrs_endpoint = '';
+        let lrs_token = '';
+
+        // if lrs_payload exists, extracts lrs_endpoint and lrs_token from it
+        if (lrs_payload !== undefined){
+          const payload_buffer = new Buffer.from(lrs_payload, 'base64');
+          const payload_text = payload_buffer.toString('ascii');
+          ({lrs_endpoint, lrs_token} = JSON.parse(payload_text));
+        }
+
+        meeting_data.lrs_endpoint = lrs_endpoint;
+        meeting_data.lrs_token = lrs_token;
 
         const meeting_create_day = DateTime.fromMillis(
           meeting_data.create_time
@@ -245,7 +266,7 @@ export default class XAPI {
         }
       }
       if (XAPIStatement !== null && meeting_data.xapi_enabled === 'true') {
-        await this.postToLRS(XAPIStatement);
+        await this.postToLRS(XAPIStatement, meeting_data);
       }
     });
   }
