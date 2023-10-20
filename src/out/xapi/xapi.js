@@ -81,6 +81,7 @@ export default class XAPI {
     const meeting_data = {
       internal_meeting_id: event.data.attributes.meeting["internal-meeting-id"],
       external_meeting_id: event.data.attributes.meeting["external-meeting-id"],
+      server_domain: this.config.server.domain,
     };
 
     meeting_data.session_id = this._uuid(meeting_data.internal_meeting_id);
@@ -91,7 +92,6 @@ export default class XAPI {
     return new Promise(async (resolve, reject) => {
       // if meeting-created event, set meeting_data on redis
       if (eventId == "meeting-created") {
-        meeting_data.server_domain = this.config.server.domain;
         meeting_data.planned_duration = event.data.attributes.meeting.duration;
         meeting_data.create_time = event.data.attributes.meeting["create-time"];
         meeting_data.meeting_name = event.data.attributes.meeting.name;
@@ -158,9 +158,6 @@ export default class XAPI {
           const user_data = {
             internal_user_id,
             user_name: event.data.attributes.user.name,
-            user_micro_object_id: this._uuid(internal_user_id + "_micro"),
-            user_camera_object_id: this._uuid(internal_user_id + "_camera"),
-            user_screen_object_id: this._uuid(internal_user_id + "_screen"),
           };
           try {
             await this.userStorage.addOrUpdateUserData(user_data);
@@ -191,8 +188,8 @@ export default class XAPI {
               event.data.attributes.user["sharing-mic"] == false)) {
             return;
           }
-          const internal_user_id =
-            event.data.attributes.user?.["internal-user-id"];
+          const internal_user_id = event.data.attributes.user?.["internal-user-id"];
+
           const user_data = internal_user_id
             ? await this.userStorage.getUserData(internal_user_id)
             : null;
@@ -200,6 +197,23 @@ export default class XAPI {
           if (user_data === undefined) {
             return;
           }
+          const media = {
+            "user-audio-voice-enabled": "micro",
+            "user-audio-voice-disabled": "micro",
+            "user-audio-muted": "micro",
+            "user-audio-unmuted": "micro",
+            "user-cam-broadcast-start": "camera",
+            "user-cam-broadcast-end": "camera",
+            "meeting-screenshare-started": "screen",
+            "meeting-screenshare-stopped": "screen",
+          }[eventId]
+
+          if (media !== undefined){
+            user_data[`user_${media}_object_id`] = this._uuid(`${internal_user_id}_${media}`);
+          }
+
+          user_data.user_camera_object_id = this._uuid(internal_user_id + "_camera");
+          user_data.user_screen_object_id = this._uuid(internal_user_id + "_screen");
           XAPIStatement = getXAPIStatement(event, meeting_data, user_data);
           // Chat message
         } else if (eventId == "chat-group-message-sent") {

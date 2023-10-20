@@ -6,13 +6,12 @@ export class meetingCompartment extends StorageCompartmentKV {
   }
 
   async addOrUpdateMeetingData(meeting_data) {
-    const { internal_meeting_id, context_registration, server_domain, planned_duration,
+    const { internal_meeting_id, context_registration, planned_duration,
       create_time, meeting_name, xapi_enabled, lrs_endpoint, lrs_token } = meeting_data;
 
     const payload = {
       internal_meeting_id,
       context_registration,
-      server_domain,
       planned_duration,
       create_time,
       meeting_name,
@@ -46,15 +45,11 @@ export class userCompartment extends StorageCompartmentKV {
   }
 
   async addOrUpdateUserData(user_data) {
-    const { internal_user_id, user_name, user_micro_object_id,
-      user_camera_object_id, user_screen_object_id } = user_data;
+    const { internal_user_id, user_name } = user_data;
 
     const payload = {
       internal_user_id,
       user_name,
-      user_micro_object_id,
-      user_camera_object_id,
-      user_screen_object_id,
     };
 
     const mapping = await this.save(payload, {
