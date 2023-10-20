@@ -148,7 +148,7 @@ export default class XAPI {
 
         // Do not proceed if xapi_enabled === 'false' was passed in the metadata
         if (meeting_data.xapi_enabled === 'false') {
-          return reject(new Error('xapi is disabled for this meeting'));
+          return resolve();
         }
 
         if (eventId == "meeting-ended") {
