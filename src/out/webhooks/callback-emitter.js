@@ -156,7 +156,7 @@ export default class CallbackEmitter extends EventEmitter {
     }
 
     // consider 401 as success, because the callback worked but was denied by the recipient
-    const responseFailed = (response) => !(response.ok || response.status == 401);
+    const responseOk = (response) => response.ok || response.status === 401;
     const controller = new AbortController();
     const abortTimeout = setTimeout(() => {
       controller.abort();
@@ -167,11 +167,12 @@ export default class CallbackEmitter extends EventEmitter {
     try {
       const response = await fetch(callbackURL, requestOptions);
 
-      if (responseFailed(response)) {
+      if (!responseOk(response)) {
         const failedResponseError = new Error(
           `Invalid response: ${response?.status || 'unknown'}` || 'unknown error',
         );
         failedResponseError.code = response?.status;
+        throw failedResponseError;
       }
 
       this.logger.info(`successful callback call to: [${callbackURL}]`, {
