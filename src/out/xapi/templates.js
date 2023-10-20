@@ -69,7 +69,7 @@ export default function getXAPIStatement(event, meeting_data, user_data = null, 
     const statement = {
       "actor": {
         "account": {
-          "name": user_data?.user_name || "<unknown>",
+          "name": user_data?.name || "<unknown>",
           "homePage": `https://${server_domain}`
         }
       },
@@ -144,7 +144,7 @@ export default function getXAPIStatement(event, meeting_data, user_data = null, 
         "definition": {
           "type": `https://w3id.org/xapi/virtual-classroom/activity-types/${media}`,
           "name": {
-            "en": `${user_data?.user_name}'s ${media}`
+            "en": `${user_data?.name}'s ${media}`
           }
         }
       };

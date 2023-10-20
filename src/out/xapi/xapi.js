@@ -160,7 +160,7 @@ export default class XAPI {
           const internal_user_id = event.data.attributes.user["internal-user-id"];
           const user_data = {
             internal_user_id,
-            user_name: event.data.attributes.user.name,
+            name: event.data.attributes.user.name,
           };
           try {
             await this.userStorage.addOrUpdateUserData(user_data);

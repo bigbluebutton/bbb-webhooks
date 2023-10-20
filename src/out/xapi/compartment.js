@@ -45,11 +45,11 @@ export class userCompartment extends StorageCompartmentKV {
   }
 
   async addOrUpdateUserData(user_data) {
-    const { internal_user_id, user_name } = user_data;
+    const { internal_user_id, name } = user_data;
 
     const payload = {
       internal_user_id,
-      user_name,
+      name,
     };
 
     const mapping = await this.save(payload, {
