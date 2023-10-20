@@ -97,7 +97,7 @@ export default class XAPI {
         meeting_data.meeting_name = event.data.attributes.meeting.name;
         meeting_data.xapi_enabled = event.data.attributes.meeting.metadata?.["xapi-enabled"] !== 'false' ? 'true' : 'false';
 
-        const lrs_payload = event.data.attributes.meeting.metadata?.["secret_lrs-payload"];
+        const lrs_payload = event.data.attributes.meeting.metadata?.["secret-lrs-payload"];
         let lrs_endpoint = '';
         let lrs_token = '';
 
