@@ -60,6 +60,61 @@ export default class EventProcessor {
     return parsedEvent;
   }
 
+  // TODO move this to an event factory
+  // Spoofs a user left event for a given user when a meeting ends (so that the user
+  // is removed from the user mapping AND the user left event is sent to output modules).
+  // This is necessary because the user left event is not sent by BBB when a meeting ends.
+  _spoofUserLeftEvent(internalMeetingID, externalMeetingID, userData) {
+    if (userData == null || userData.user == null) {
+      Logger.warn('cannot spoof user left event, user is null');
+      return;
+    }
+
+    const spoofedUserLeft = {
+      data: {
+        "type": "event",
+        "id": "user-left",
+        "attributes":{
+          "meeting":{
+            "internal-meeting-id": internalMeetingID,
+            "external-meeting-id": externalMeetingID,
+          },
+          "user": userData.user,
+        },
+        "event":{
+          "ts": Date.now()
+        }
+      }
+    };
+
+    this.processInputEvent(spoofedUserLeft);
+  }
+
+  async _handleMeetingEndedEvent(event) {
+    const internalMeetingId = event.data.attributes.meeting["internal-meeting-id"];
+    const externalMeetingId = event.data.attributes.meeting["external-meeting-id"];
+
+    try {
+      await IDMapping.get().removeMapping(internalMeetingId)
+    } catch (error) {
+      Logger.error(`error removing meeting mapping: ${error}`, {
+        error: error.stack,
+        event,
+      });
+    }
+
+    try {
+      const users = await UserMapping.get().getUsersFromMeeting(internalMeetingId);
+      users.forEach(user => this._spoofUserLeftEvent(internalMeetingId, externalMeetingId, user));
+      await UserMapping.get().removeMappingWithMeetingId(internalMeetingId);
+    } catch (error) {
+      Logger.error(`error removing user mappings: ${error}`, {
+        error: error.stack,
+        event,
+      });
+    }
+  }
+
   processInputEvent(event) {
     try {
       const rawEvent = this._parseEvent(event);
@@ -115,12 +170,7 @@ export default class EventProcessor {
             });
             break;
           case "meeting-ended":
-            IDMapping.get().removeMapping(internalMeetingId).catch((error) => {
-              Logger.error(`error removing meeting mapping: ${error}`, {
-                error: error.stack,
-                event,
-              });
-            }).finally(() => {
+            this._handleMeetingEndedEvent(outputEvent).finally(() => {
               this._notifyOutputModules(outputEvent, rawEvent);
             });
             break;
@@ -148,7 +198,9 @@ export default class EventProcessor {
     this.outputs.forEach((output) => {
       output.onEvent(message, raw).catch((error) => {
         Logger.error('error notifying output module', {
-          error: error.stack,
+          module: output.name,
+          error: error?.stack,
+          errorMessage: error?.message,
           event: message,
           raw,
         });

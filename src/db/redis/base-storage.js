@@ -208,6 +208,16 @@ class StorageCompartmentKV {
     );
   }
 
+  findAllWithField(field, value) {
+    const dupe = Object.keys(this.localStorage).filter(internal => {
+      return this.localStorage[internal] && this.localStorage[internal]?.payload[field] === value;
+    }).map(internal => {
+      return this.localStorage[internal];
+    });
+
+    return [...new Set(dupe)];
+  }
+
   findByField(field, value) {
     if (field != null && value != null) {
       for (let internal in this.localStorage) {

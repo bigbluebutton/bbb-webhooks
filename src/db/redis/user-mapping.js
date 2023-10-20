@@ -41,6 +41,12 @@ class UserMappingCompartment extends StorageCompartmentKV {
     return (mapping != null ? mapping.payload?.internalMeetingID : undefined);
   }
 
+  async getUsersFromMeeting(internalMeetingID) {
+    const mappings = await this.findAllWithField('meetingId', internalMeetingID);
+
+    return mappings != null ? mappings.map((mapping) => mapping.payload) : [];
+  }
+
   getUser(internalUserID) {
     const mapping = this.findByField('internalUserID', internalUserID);
     return (mapping != null ? mapping.payload?.user : undefined);
