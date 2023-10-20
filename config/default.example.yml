@@ -1,6 +1,6 @@
 log:
   level: debug
-  filename: /var/log/bigbluebutton/bbb-webhooks.log
+  filename: /var/log/bbb-webhooks.log
   stdout: true
 
 prometheus:
