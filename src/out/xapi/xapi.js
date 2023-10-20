@@ -72,11 +72,11 @@ export default class XAPI {
         this.logger.debug("OutXAPI.res.post_fail:", { statement });
       }
     } catch (err) {
-      this.logger.debug("OutXAPI.res.err:", err);
+      this.logger.error("OutXAPI.res.err:", err);
     }
   }
 
-  async onEvent(event, raw) {
+  async onEvent(event) {
     const eventId = event.data.id;
 
     if (this.validEvents.indexOf(eventId) <= -1) return Promise.resolve();
@@ -130,7 +130,7 @@ export default class XAPI {
 
         // Do not proceed if xapi_enabled === 'false' was passed in the metadata
         if (meeting_data.xapi_enabled === 'false') {
-          return reject();
+          return reject(new Error('xapi is disabled for this meeting'));
         }
 
         XAPIStatement = getXAPIStatement(event, meeting_data);
@@ -142,13 +142,13 @@ export default class XAPI {
         );
         // Do not proceed if meeting_data is not found on the storage
         if (meeting_data_storage === undefined) {
-          return reject();
+          return reject(new Error('meeting data not found'));
         }
         Object.assign(meeting_data, meeting_data_storage);
 
         // Do not proceed if xapi_enabled === 'false' was passed in the metadata
         if (meeting_data.xapi_enabled === 'false') {
-          return reject();
+          return reject(new Error('xapi is disabled for this meeting'));
         }
 
         if (eventId == "meeting-ended") {
