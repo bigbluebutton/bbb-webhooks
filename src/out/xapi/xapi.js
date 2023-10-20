@@ -212,8 +212,6 @@ export default class XAPI {
             user_data[`user_${media}_object_id`] = this._uuid(`${internal_user_id}_${media}`);
           }
 
-          user_data.user_camera_object_id = this._uuid(internal_user_id + "_camera");
-          user_data.user_screen_object_id = this._uuid(internal_user_id + "_screen");
           XAPIStatement = getXAPIStatement(event, meeting_data, user_data);
           // Chat message
         } else if (eventId == "chat-group-message-sent") {
