@@ -33,6 +33,10 @@ export default class XAPI {
     ]
   }
 
+  _uuid(payload) {
+    return uuidv5( payload, this.config.uuid_namespace );
+  }
+
   async postToLRS(statement) {
     const { lrs_endpoint, lrs_username, lrs_password } = this.config.lrs;
 
@@ -72,16 +76,8 @@ export default class XAPI {
       external_meeting_id: event.data.attributes.meeting["external-meeting-id"],
     };
 
-    const uuid_namespace = this.config.uuid_namespace;
-
-    meeting_data.session_id = uuidv5(
-      meeting_data.internal_meeting_id,
-      uuid_namespace
-    );
-    meeting_data.object_id = uuidv5(
-      meeting_data.external_meeting_id,
-      uuid_namespace
-    );
+    meeting_data.session_id = this._uuid(meeting_data.internal_meeting_id);
+    meeting_data.object_id = this._uuid(meeting_data.external_meeting_id);
 
     let XAPIStatement = null;
 
@@ -99,7 +95,7 @@ export default class XAPI {
         ).toFormat("yyyyMMdd");
         const external_key = `${meeting_data.external_meeting_id}_${meeting_create_day}`;
 
-        meeting_data.context_registration = uuidv5(external_key, uuid_namespace);
+        meeting_data.context_registration = this._uuid(external_key);
         //set meeting_data on redis
         try {
           await this.meetingStorage.addOrUpdateMeetingData(meeting_data);
@@ -137,9 +133,13 @@ export default class XAPI {
         }
         // if user-joined event, set user_data on redis
         else if (eventId == "user-joined") {
+          const internal_user_id = event.data.attributes.user["internal-user-id"];
           const user_data = {
-            internal_user_id: event.data.attributes.user["internal-user-id"],
+            internal_user_id,
             user_name: event.data.attributes.user.name,
+            user_micro_object_id: this._uuid(internal_user_id + "_micro"),
+            user_camera_object_id: this._uuid(internal_user_id + "_camera"),
+            user_screen_object_id: this._uuid(internal_user_id + "_screen"),
           };
           try {
             await this.userStorage.addOrUpdateUserData(user_data);
@@ -185,7 +185,7 @@ export default class XAPI {
           resolve();
           const user_data = event.data.attributes["chat-message"]?.sender;
           const msg_key = `${user_data?.internal_user_id}_${user_data?.time}`;
-          user_data.msg_object_id = uuidv5(msg_key, uuid_namespace);
+          user_data.msg_object_id = this._uuid(msg_key);
           XAPIStatement = getXAPIStatement(event, meeting_data, user_data);
           // Poll events
         } else if (
@@ -200,7 +200,7 @@ export default class XAPI {
           const user_data = internal_user_id
             ? await this.userStorage.getUserData(internal_user_id)
             : null;
-          const object_id = uuidv5(event.data.attributes.poll.id, uuid_namespace);
+          const object_id = this._uuid(event.data.attributes.poll.id);
           let poll_data;
 
           if (eventId == "poll-started") {
