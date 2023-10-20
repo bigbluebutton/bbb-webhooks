@@ -4,6 +4,16 @@ This is a node.js application that listens for all events on BigBlueButton and s
 
 You can read the full documentation at: https://docs.bigbluebutton.org/development/webhooks
 
+## Dependencies and pre-requisites
+
+There are a few dependencies that need to be installed before you can run this application.
+Their minimum versions are listed below.
+
+| Dependency            | Minimum version             |
+|-----------------------|:---------------------------:|
+| Node.js               | >= v18.x                    |
+| npm                   | >= v7.x                     |
+| Redis                 | >= v5.0                     |
 
 ## Development
 
@@ -48,7 +58,6 @@ Once you have adjusted your configuration file, you will need to restart your de
 If you are editing these permanent urls after they have already been committed to the application once, you may need to flush the redis database in order for adjustments to these permanent hooks to get picked up by your application. Use the following command to do so:
  - `redis-cli flushall`
  - **_IMPORTANT:_** Running the above command clears the redis database entirely. This will result in all meetings, processing or not, to be cleared from the database, and may result in broken meetings currently processing.
-
 
 ## Production
 
