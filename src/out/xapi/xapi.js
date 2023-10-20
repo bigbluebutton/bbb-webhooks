@@ -68,8 +68,11 @@ export default class XAPI {
       const { status } = response;
       const data = await response.json();
       this.logger.debug("OutXAPI.res.status:", { status, data });
+      if (status < 200 || status >= 400){
+        this.logger.debug("OutXAPI.res.post_fail:", { statement });
+      }
     } catch (err) {
-      this.logger.debug("OutXAPI.err:", err);
+      this.logger.debug("OutXAPI.res.err:", err);
     }
   }
 
