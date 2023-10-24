@@ -156,7 +156,7 @@ export default function getXAPIStatement(event, meeting_data, user_data = null, 
       const raisedHandVerb = "https://w3id.org/xapi/virtual-classroom/verbs/reacted";
       const loweredHandVerb = "https://w3id.org/xapi/virtual-classroom/verbs/unreacted";
       const isRaiseHand = event.data.attributes.user["raise-hand"];
-      statement.verb = isRaiseHand ? raisedHandVerb : loweredHandVerb;
+      statement.verb.id = isRaiseHand ? raisedHandVerb : loweredHandVerb;
       statement.result = {
         "extensions": {
           "https://w3id.org/xapi/virtual-classroom/extensions/emoji": "U+1F590"
