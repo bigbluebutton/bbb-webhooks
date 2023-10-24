@@ -43,6 +43,10 @@ class StorageItem {
     this.logger = newLogger(`db:${this.prefix}|${this.setId}`);
   }
 
+  _accessNested (obj, path) {
+    return path.split('.').reduce((o, i) => o[i], obj);
+  }
+
   async save() {
     try {
       await this.redisClient.hSet(this.prefix + ":" + this.id, this.serialize(this));
@@ -119,6 +123,10 @@ class StorageCompartmentKV {
     this.logger = newLogger(`db:${this.prefix}|${this.setId}`);
   }
 
+  _accessNested (obj, path) {
+    return path.split('.').reduce((o, i) => o[i], obj);
+  }
+
   serialize(data) {
     const r = {
       id: data.id,
@@ -181,11 +189,12 @@ class StorageCompartmentKV {
   async destroyWithField(field, value) {
     return Promise.all(
       Object.keys(this.localStorage).filter(internal => {
-        return this.localStorage[internal] && this.localStorage[internal]?.payload[field] === value;
+        return this.localStorage[internal]?.payload
+          && this._accessNested(this.localStorage[internal].payload, field) === value;
       }).map(internal => {
         let mapping = this.localStorage[internal];
 
-        if (mapping.payload[field] === value) {
+        if (this._accessNested(mapping.payload, field) === value) {
           return mapping.destroy()
             .then(() => {
               return mapping;
@@ -210,7 +219,8 @@ class StorageCompartmentKV {
 
   findAllWithField(field, value) {
     const dupe = Object.keys(this.localStorage).filter(internal => {
-      return this.localStorage[internal] && this.localStorage[internal]?.payload[field] === value;
+      return this.localStorage[internal]?.payload
+        && this._accessNested(this.localStorage[internal].payload, field) === value;
     }).map(internal => {
       return this.localStorage[internal];
     });
@@ -222,7 +232,7 @@ class StorageCompartmentKV {
     if (field != null && value != null) {
       for (let internal in this.localStorage) {
         const mapping = this.localStorage[internal];
-        if (mapping != null && mapping.payload[field] === value) {
+        if (mapping != null && this._accessNested(mapping.payload, field) === value) {
           return mapping;
         }
       }
@@ -235,8 +245,8 @@ class StorageCompartmentKV {
     if (field != null && value != null) {
       for (let internal in this.localStorage) {
         const mapping = this.localStorage[internal];
-        if (mapping != null && mapping.payload[field] === value) {
-          mapping.payload = { ...mapping.payload, ...payload };
+        if (mapping != null && this._accessNested(mapping.payload, field) === value) {
+          mapping.payload = config.util.extendDeep({}, mapping.payload, payload, 5);
           return mapping.save();
         }
       }
