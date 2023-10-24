@@ -263,14 +263,6 @@ export default class XAPI {
             if (poll_data === undefined) {
               return;
             }
-            poll_data.choices = poll_data.choices.map((item) => {
-              const parsedItem = JSON.parse(item);
-              const description = JSON.parse(parsedItem.description);
-              return {
-                id: JSON.parse(item).id,
-                description: { en: description.en },
-              };
-            });
           }
           XAPIStatement = getXAPIStatement(
             event,
