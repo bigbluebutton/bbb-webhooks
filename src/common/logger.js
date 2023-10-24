@@ -92,6 +92,7 @@ const _newLogger = ({
   const logger = pino({
     level,
     hooks,
+    redact: ['config.server.secret'],
   }, targets);
 
   return logger;
