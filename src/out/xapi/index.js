@@ -44,8 +44,6 @@ export default class OutXAPI {
 
       await this.redisClient.connect();
 
-      this.logger.debug('OutXAPI.onEvent:', this.config);
-
       this.meetingStorage = new meetingCompartment(
         this.redisClient,
         this.config.redis.keys.meetingPrefix,
