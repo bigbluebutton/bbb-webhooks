@@ -122,7 +122,7 @@ export default class EventProcessor {
       const outputEvent = eventInstance.outputEvent;
 
       if (!Utils.isEmpty(outputEvent)) {
-        Logger.debug('raw event succesfully parsed', { rawEvent });
+        Logger.trace('raw event succesfully parsed', { rawEvent });
         const internalMeetingId = outputEvent.data.attributes.meeting["internal-meeting-id"];
         IDMapping.get().reportActivity(internalMeetingId);
 
@@ -166,6 +166,62 @@ export default class EventProcessor {
                 event,
               });
             }).finally(() => {
+              this._notifyOutputModules(outputEvent, rawEvent);
+            });
+            break;
+          case "user-presenter-assigned":
+            UserMapping.get().updateWithField(
+              'internalUserID',
+              outputEvent.data.attributes.user["internal-user-id"], {
+                user: {
+                  presenter: true,
+                },
+              }
+            ).catch((error) => {
+              Logger.error('error updating user mapping', error);
+            }).finally(() =>  {
+              this._notifyOutputModules(outputEvent, rawEvent);
+            });
+            break;
+          case "user-presenter-unassigned":
+            UserMapping.get().updateWithField(
+              'internalUserID',
+              outputEvent.data.attributes.user["internal-user-id"], {
+                user: {
+                  presenter: false,
+                },
+              }
+            ).catch((error) => {
+              Logger.error('error updating user mapping', error);
+            }).finally(() =>  {
+              this._notifyOutputModules(outputEvent, rawEvent);
+            });
+            break;
+          case "meeting-screenshare-started":
+            UserMapping.get().updateWithField(
+              'internalUserID',
+              outputEvent.data.attributes.user["internal-user-id"], {
+                user: {
+                  screenshare: true,
+                },
+              }
+            ).catch((error) => {
+              Logger.error('error updating user mapping', error);
+            }).finally(() =>  {
+              this._notifyOutputModules(outputEvent, rawEvent);
+            });
+            break;
+          case "meeting-screenshare-stopped":
+            UserMapping.get().updateWithField(
+              'internalUserID',
+              outputEvent.data.attributes.user["internal-user-id"], {
+                user: {
+                  screenshare: false,
+                },
+              }
+            ).catch((error) => {
+              Logger.error('error updating user mapping', error);
+            }).finally(() =>  {
               this._notifyOutputModules(outputEvent, rawEvent);
             });
             break;

@@ -192,35 +192,64 @@ export default class WebhooksEvent {
       }
     }
 
-    if (messageObj.envelope.name === "MeetingCreatedEvtMsg") {
-      this.outputEvent.data.attributes = {
-        "meeting":{
-          "internal-meeting-id": props.meetingProp.intId,
-          "external-meeting-id": props.meetingProp.extId,
-          "name": props.meetingProp.name,
-          "is-breakout": props.meetingProp.isBreakout,
-          "parent-id": props.breakoutProps.parentId,
-          "duration": props.durationProps.duration,
-          "create-time": props.durationProps.createdTime,
-          "create-date": props.durationProps.createdDate,
-          "moderator-pass": props.password.moderatorPass,
-          "viewer-pass": props.password.viewerPass,
-          "record": props.recordProp.record,
-          "voice-conf": props.voiceProp.voiceConf,
-          "dial-number": props.voiceProp.dialNumber,
-          "max-users": props.usersProp.maxUsers,
-          "metadata": props.metadataProp.metadata
-        }
-      };
-    }
-    if (messageObj.envelope.name === "SetCurrentPresentationEvtMsg") {
-      this.outputEvent.data.attributes = {
-        "meeting":{
-          "internal-meeting-id": meetingId,
-          "external-meeting-id": IDMapping.get().getExternalMeetingID(meetingId),
-          "presentation-id": messageObj.core.body.presentationId
-        }
-      };
+    switch (messageObj.envelope.name) {
+      case "MeetingCreatedEvtMsg":
+        this.outputEvent.data.attributes = {
+          "meeting":{
+            "internal-meeting-id": props.meetingProp.intId,
+            "external-meeting-id": props.meetingProp.extId,
+            "name": props.meetingProp.name,
+            "is-breakout": props.meetingProp.isBreakout,
+            "parent-id": props.breakoutProps.parentId,
+            "duration": props.durationProps.duration,
+            "create-time": props.durationProps.createdTime,
+            "create-date": props.durationProps.createdDate,
+            "moderator-pass": props.password.moderatorPass,
+            "viewer-pass": props.password.viewerPass,
+            "record": props.recordProp.record,
+            "voice-conf": props.voiceProp.voiceConf,
+            "dial-number": props.voiceProp.dialNumber,
+            "max-users": props.usersProp.maxUsers,
+            "metadata": props.metadataProp.metadata
+          }
+        };
+        break;
+
+      case "SetCurrentPresentationEvtMsg":
+        this.outputEvent.data.attributes = {
+          "meeting":{
+            "internal-meeting-id": meetingId,
+            "external-meeting-id": IDMapping.get().getExternalMeetingID(meetingId),
+            "presentation-id": messageObj.core.body.presentationId
+          }
+        };
+        break;
+
+      case "ScreenshareRtmpBroadcastStartedEvtMsg": {
+        const presenter = UserMapping.get().getMeetingPresenter(meetingId);
+        this.outputEvent.data.attributes = {
+          ...this.outputEvent.data.attributes,
+          user:{
+            "internal-user-id": presenter.internalUserID,
+            "external-user-id": presenter.externalUserID,
+          }
+        };
+        break;
+      }
+      case "ScreenshareRtmpBroadcastStoppedEvtMsg": {
+        const owner = UserMapping.get().getMeetingScreenShareOwner(meetingId);
+        this.outputEvent.data.attributes = {
+          ...this.outputEvent.data.attributes,
+          user:{
+            "internal-user-id": owner.internalUserID,
+            "external-user-id": owner.externalUserID,
+          }
+        };
+
+        break;
+      }
+
+      default: return;
     }
   }
 

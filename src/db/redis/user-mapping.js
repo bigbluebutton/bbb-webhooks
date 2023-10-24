@@ -1,12 +1,25 @@
 import config from 'config';
-import Logger from '../../common/logger.js';
-import { v4 as uuidv4 } from 'uuid';
-import { StorageItem, StorageCompartmentKV } from './base-storage.js';
+import { StorageCompartmentKV } from './base-storage.js';
 
 class UserMappingCompartment extends StorageCompartmentKV {
-  constructor(client, prefix, setId) {
+  static itemDeserializer(data) {
+    const { id, ...payload } = data;
+    const { user, ...rest } = payload;
+    const parsedPayload = {
+      ...rest,
+      user: JSON.parse(user),
+    };
+
+    return {
+      id,
+      ...parsedPayload,
+    };
+  }
+
+  constructor(client, prefix, setId, options = {}) {
     super(client, prefix, setId, {
       aliasField: 'internalUserID',
+      ...options,
     });
   }
 
@@ -41,10 +54,26 @@ class UserMappingCompartment extends StorageCompartmentKV {
     return (mapping != null ? mapping.payload?.internalMeetingID : undefined);
   }
 
-  async getUsersFromMeeting(internalMeetingID) {
-    const mappings = await this.findAllWithField('meetingId', internalMeetingID);
+  getUsersFromMeeting(internalMeetingID) {
+    const mappings = this.findAllWithField('meetingId', internalMeetingID);
 
     return mappings != null ? mappings.map((mapping) => mapping.payload) : [];
+  }
+
+  getMeetingPresenter (internalMeetingID) {
+    const mappings = this.getUsersFromMeeting(internalMeetingID);
+
+    return mappings.find((mapping) =>
+      mapping?.user?.presenter === true || mapping?.user?.presenter === 'true'
+    );
+  }
+
+  getMeetingScreenShareOwner (internalMeetingID) {
+    const mappings = this.getUsersFromMeeting(internalMeetingID);
+
+    return mappings.find((mapping) =>
+      mapping?.user?.screenshare === true || mapping?.user?.screenshare === 'true'
+    );
   }
 
   getUser(internalUserID) {
@@ -70,7 +99,9 @@ const init = (redisClient) => {
     UserMapping = new UserMappingCompartment(
       redisClient,
       config.get('redis.keys.userMapPrefix'),
-      config.get('redis.keys.userMaps')
+      config.get('redis.keys.userMaps'), {
+        deserializer: UserMappingCompartment.itemDeserializer,
+      }
     );
     return UserMapping.initialize();
   }
