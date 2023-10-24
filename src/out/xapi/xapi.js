@@ -130,7 +130,7 @@ export default class XAPI {
 
         // Do not proceed if xapi_enabled === 'false' was passed in the metadata
         if (meeting_data.xapi_enabled === 'false') {
-          return reject(new Error('xapi is disabled for this meeting'));
+          return resolve();
         }
 
         XAPIStatement = getXAPIStatement(event, meeting_data);
@@ -148,7 +148,7 @@ export default class XAPI {
 
         // Do not proceed if xapi_enabled === 'false' was passed in the metadata
         if (meeting_data.xapi_enabled === 'false') {
-          return reject(new Error('xapi is disabled for this meeting'));
+          return resolve();
         }
 
         if (eventId == "meeting-ended") {
@@ -160,7 +160,7 @@ export default class XAPI {
           const internal_user_id = event.data.attributes.user["internal-user-id"];
           const user_data = {
             internal_user_id,
-            user_name: event.data.attributes.user.name,
+            name: event.data.attributes.user.name,
           };
           try {
             await this.userStorage.addOrUpdateUserData(user_data);
@@ -195,7 +195,7 @@ export default class XAPI {
 
           const user_data = internal_user_id
             ? await this.userStorage.getUserData(internal_user_id)
-            : null;
+            : undefined;
           // Do not proceed if user_data is requested but not found on the storage
           if (user_data === undefined) {
             return;
@@ -258,7 +258,7 @@ export default class XAPI {
           } else if (eventId == "poll-responded") {
             poll_data = object_id
               ? await this.pollStorage.getPollData(object_id)
-              : null;
+              : undefined;
             // Do not proceed if poll_data is requested but not found on the storage
             if (poll_data === undefined) {
               return;
