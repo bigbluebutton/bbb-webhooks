@@ -1,4 +1,5 @@
 import getXAPIStatement from "./templates.js";
+import decryptStr from "./decrypt.js"
 import { v5 as uuidv5 } from "uuid";
 import { DateTime } from "luxon";
 import fetch from "node-fetch";
@@ -104,10 +105,9 @@ export default class XAPI {
         let lrs_endpoint = '';
         let lrs_token = '';
 
-        // if lrs_payload exists, extracts lrs_endpoint and lrs_token from it
+        // if lrs_payload exists, decrypts with the server secret and extracts lrs_endpoint and lrs_token from it
         if (lrs_payload !== undefined){
-          const payload_buffer = new Buffer.from(lrs_payload, 'base64');
-          const payload_text = payload_buffer.toString('ascii');
+          const payload_text = decryptStr(lrs_payload, this.config.server.secret);
           ({lrs_endpoint, lrs_token} = JSON.parse(payload_text));
         }
 
