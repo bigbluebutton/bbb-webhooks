@@ -57,8 +57,8 @@ You have the option to set relevant metadata when creating a meeting in Big Blue
 If you set `meta_xapi-enabled` to false, no xAPI events will be generated or sent to the LRS for that particular meeting. This provides the flexibility to choose which meetings should be tracked using xAPI.
 
 ### meta_secret-lrs-payload
-- **Description**: This parameter allows you to specify the credentials and endpoint of the Learning Record Store (LRS) where the xAPI events will be sent. The payload is a Base64-encoded string representing a JSON object.
-- **Value Format**: Base64-encoded JSON object **(for now)**
+- **Description**: This parameter allows you to specify the credentials and endpoint of the Learning Record Store (LRS) where the xAPI events will be sent. The payload is a Base64-encoded string representing a JSON object encrypted (AES 256/PBKDF2) using the **server secret** as the **passphrase**.
+- **Value Format**: Base64-encoded JSON object encrypted with AES 256/PBKDF2 encryption
 - **JSON Payload Structure**:
 ```json
 {
@@ -68,7 +68,7 @@ If you set `meta_xapi-enabled` to false, no xAPI events will be generated or sen
 ```
 - **Example**:
 ```
-meta_secret-lrs-payload: YmFzZTY0IGVuY29kaW5nIHNjaGVtZXMgYXJlIGNvbW1vbmx5IHVzZWQgd2hlbiB0aGVtZSBkYXRhIG5lZWRzIHRvIGJlIHNlcnZlciB3aXRob3V0IG1vZGlmaWNhdGlvbiBkdXJpbmcgdHJhY2tlci4gVGhpcyBlbmNvZGluZyBwYXJ0ZW50IHNlcnZlciB3aWxsIGJlIHN0b3JlZCBhbmQgdHJhbnNmZXJyZWQgb3ZlciBtZWRpYSB0aGF0IGFyZSBkZXNpZ25lZCB0byBkZWFsIHdpdGggdGV4dC4gVGhpcyBwYXJ0...
+meta_secret-lrs-payload: U2FsdGVkX1+9SPjkogUTf8sDxUf7Hu/llOglOkEBlO+7crvt8uedZ8CuEPl/64kNjCmqT71zIxNidELYEYJtUt/RXUiyz2mAvPCeVA3OLvdUX0z2lZOu6kRwwdqEekg2YqicUi5/HO/6AnXegSRXeQH0WReYtjbcxpPUpX/XxfU2yGxQqDgkMG2D2IVyBsJnxVdrOUBf75MFSe02JO++46YJJmsy/...
 ```
 
 The `meta_secret-lrs-payload` parameter allows you to securely define the LRS endpoint and authentication token for each meeting. It ensures that xAPI events generated during the meeting are sent to the correct LRS.
