@@ -157,9 +157,9 @@ export default class XAPI {
         }
         // if user-joined event, set user_data on redis
         else if (eventId == "user-joined") {
-          const internal_user_id = event.data.attributes.user["internal-user-id"];
+          const external_user_id = event.data.attributes.user["internal-user-id"];
           const user_data = {
-            internal_user_id,
+            external_user_id,
             name: event.data.attributes.user.name,
           };
           try {
@@ -191,10 +191,10 @@ export default class XAPI {
               event.data.attributes.user["sharing-mic"] == false)) {
             return;
           }
-          const internal_user_id = event.data.attributes.user?.["internal-user-id"];
+          const external_user_id = event.data.attributes.user?.["internal-user-id"];
 
-          const user_data = internal_user_id
-            ? await this.userStorage.getUserData(internal_user_id)
+          const user_data = external_user_id
+            ? await this.userStorage.getUserData(external_user_id)
             : undefined;
           // Do not proceed if user_data is requested but not found on the storage
           if (user_data === undefined) {
@@ -212,7 +212,7 @@ export default class XAPI {
           }[eventId]
 
           if (media !== undefined){
-            user_data[`user_${media}_object_id`] = this._uuid(`${internal_user_id}_${media}`);
+            user_data[`user_${media}_object_id`] = this._uuid(`${external_user_id}_${media}`);
           }
 
           XAPIStatement = getXAPIStatement(event, meeting_data, user_data);
@@ -220,7 +220,7 @@ export default class XAPI {
         } else if (eventId == "chat-group-message-sent") {
           resolve();
           const user_data = event.data.attributes["chat-message"]?.sender;
-          const msg_key = `${user_data?.internal_user_id}_${user_data?.time}`;
+          const msg_key = `${user_data?.external_user_id}_${user_data?.time}`;
           user_data.msg_object_id = this._uuid(msg_key);
           XAPIStatement = getXAPIStatement(event, meeting_data, user_data);
           // Poll events
@@ -231,10 +231,10 @@ export default class XAPI {
           if (eventId == "poll-responded") {
             resolve();
           }
-          const internal_user_id =
+          const external_user_id =
             event.data.attributes.user?.["internal-user-id"];
-          const user_data = internal_user_id
-            ? await this.userStorage.getUserData(internal_user_id)
+          const user_data = external_user_id
+            ? await this.userStorage.getUserData(external_user_id)
             : null;
           const object_id = this._uuid(event.data.attributes.poll.id);
           let poll_data;

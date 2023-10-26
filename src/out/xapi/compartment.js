@@ -6,7 +6,7 @@ export class meetingCompartment extends StorageCompartmentKV {
   }
 
   async addOrUpdateMeetingData(meeting_data) {
-    const { internal_meeting_id, context_registration, planned_duration,
+    const { _meeting_id, context_registration, planned_duration,
       create_time, meeting_name, xapi_enabled, lrs_endpoint, lrs_token } = meeting_data;
 
     const payload = {
@@ -45,23 +45,23 @@ export class userCompartment extends StorageCompartmentKV {
   }
 
   async addOrUpdateUserData(user_data) {
-    const { internal_user_id, name } = user_data;
+    const { external_user_id, name } = user_data;
 
     const payload = {
-      internal_user_id,
+      external_user_id,
       name,
     };
 
     const mapping = await this.save(payload, {
-      alias: internal_user_id,
+      alias: external_user_id,
     });
-    this.logger.info(`added user data to the list ${internal_user_id}: ${mapping.print()}`);
+    this.logger.info(`added user data to the list ${external_user_id}: ${mapping.print()}`);
 
     return mapping;
   }
 
-  async getUserData(internal_user_id) {
-    const user_data = this.findByField('internal_user_id', internal_user_id);
+  async getUserData(external_user_id) {
+    const user_data = this.findByField('external_user_id', external_user_id);
     return (user_data != null ? user_data.payload : undefined);
   }
 
