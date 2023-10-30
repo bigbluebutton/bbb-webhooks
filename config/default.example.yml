@@ -1,7 +1,10 @@
 log:
-  level: debug
-  filename: /var/log/bbb-webhooks.log
+  level: info
+  # Wether to log to stdout or not
   stdout: true
+  # Wether to log to log.filename or not
+  file: false
+  filename: /var/log/bbb-webhooks.log
 
 prometheus:
   enabled: false

@@ -3,6 +3,7 @@ import config from 'config';
 const LOG_CONFIG = config.get('log') || {};
 const {
   level: DEFAULT_LEVEL,
+  file: DEFAULT_USE_FILE,
   filename: DEFAULT_FILENAME,
   stdout: STDOUT = true,
 } = LOG_CONFIG;
@@ -27,7 +28,7 @@ const _newLogger = ({
 }) => {
   const loggingTransports = [];
 
-  if (filename) {
+  if (DEFAULT_USE_FILE && filename) {
     try {
       loggingTransports.push({
         level,

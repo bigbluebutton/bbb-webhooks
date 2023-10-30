@@ -10,8 +10,9 @@ redis:
 
 log:
   level: LOG_LEVEL
-  filename: LOG_FILE
-  stdout: LOG_STDOUT
+  stdout: LOG_TO_STDOUT
+  file: LOG_TO_FILE
+  filename: LOG_FILENAME
 
 prometheus:
   enabled: PROM_ENABLED
