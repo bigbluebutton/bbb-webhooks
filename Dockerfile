@@ -12,7 +12,7 @@ RUN npm ci --omit=dev
 
 COPY . .
 
-RUN cp config/default.example.yml config/local.yml
+RUN cp config/default.example.yml config/default.yml
 
 EXPOSE 3005
 

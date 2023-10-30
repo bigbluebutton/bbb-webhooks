@@ -1,7 +1,10 @@
 log:
-  level: debug
-  filename: /var/log/bbb-webhooks.log
+  level: info
+  # Wether to log to stdout or not
   stdout: true
+  # Wether to log to log.filename or not
+  file: false
+  filename: /var/log/bbb-webhooks.log
 
 prometheus:
   enabled: false
@@ -37,16 +40,19 @@ redis:
 
 # Basic module config entry template:
 #   key: <relative file path to app root if drop-in or module name if npm/github>,
+#     enabled: true|false (optional, default: true)
 #     type: in|out|db,
 #     config: <module-specific config> (optional)
 #
 modules:
   ../db/redis/index.js:
+    enabled: true
     type: db
     config:
       host: 127.0.0.1
       port: 6379
   ../in/redis/index.js:
+    enabled: true
     type: in
     config:
       redis:
@@ -62,6 +68,7 @@ modules:
           - bigbluebutton:from-bbb-apps:users
           - bigbluebutton:from-rap
   ../out/webhooks/index.js:
+    enabled: true
     type: out
     config:
       api:
@@ -116,3 +123,20 @@ modules:
         attempts: 12
         initialInterval: 1
         increaseFactor: 2
+  ../out/xapi/index.js:
+    enabled: false
+    type: out
+    config:
+      lrs:
+        lrs_endpoint: https://your_lrs.endpoint
+        lrs_username: user
+        lrs_password: pass
+      uuid_namespace: 01234567-89ab-cdef-0123-456789abcdef
+      redis:
+        keys:
+          meetings: bigbluebutton:webhooks:xapi:meetings
+          meetingPrefix: bigbluebutton:webhooks:xapi:meeting
+          users: bigbluebutton:webhooks:xapi:users
+          userPrefix: bigbluebutton:webhooks:xapi:user
+          polls: bigbluebutton:webhooks:xapi:polls
+          pollPrefix: bigbluebutton:webhooks:xapi:poll

@@ -107,6 +107,12 @@ export default class ModuleManager {
     for (const [name, description] of sortedModules) {
       try {
         const fullConfiguration = { name, ...description };
+
+        if (description.enabled === false) {
+          this.logger.warn(`module ${name} disabled, skipping`);
+          continue;
+        }
+
         validateModuleConf(fullConfiguration);
         const context = this._buildContext(fullConfiguration);
         const module = new ModuleWrapper(name, description.type, context, context.configuration.config);
@@ -148,7 +154,9 @@ export default class ModuleManager {
     // Added this listener to identify unhandled promises, but we should start making
     // sense of those as we find them
     process.on('unhandledRejection', (reason) => {
-      this.logger.error("CRITICAL: Unhandled promise rejection", { reason: reason.toString(), stack: reason.stack });
+      this.logger.error("CRITICAL: Unhandled promise rejection", {
+        reason: reason.toString(), stack: reason.stack,
+      });
       if (process.env.NODE_ENV !== 'production') process.exit(1);
     });
 
