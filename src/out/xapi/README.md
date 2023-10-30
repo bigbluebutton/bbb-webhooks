@@ -7,6 +7,7 @@ This module is set and configured in the `default.yml` file using the following 
 ```yml
 modules:
   ../out/xapi/index.js:
+    enabled: true
     type: out
     config:
       lrs:
