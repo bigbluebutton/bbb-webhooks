@@ -66,9 +66,17 @@ If you set `meta_xapi-enabled` to false, no xAPI events will be generated or sen
   "lrs_token": "AAF32423SDF5345"
 }
 ```
+- **Encrypting the Payload**: The Payload should be encrypted with the server secret using the following bash command (provided the lrs credential are in the `lrs.conf` file and server secret is `bab3fd92bcd7d464`):
+```bash
+cat ./lrs.conf | openssl aes-256-cbc -pass "pass:bab3fd92bcd7d464" -pbkdf2 -a -A
+```
+- **Decrypting the Payload**: The Payload can be decrypted with the server secret using the following bash command:
+```bash
+echo -n U2FsdGVkX18fLg33ChrHbHyIvbcdDwU6+4yX2yTb4gbDKOKSG3hhsd2+TS0ZK15fZlo4G1SQqaxm1OGo1fIsoji82T4SD4y5p1G2g9E9gAKzZC2Z5R454rw7/xGvX7uYGd/fbJcZraMYmafX1Zg3qA== | openssl aes-256-cbc -d -pass "pass:bab3fd92bcd7d464" -pbkdf2 -a -A
+``````
 - **Example**:
 ```
-meta_secret-lrs-payload: U2FsdGVkX1+9SPjkogUTf8sDxUf7Hu/llOglOkEBlO+7crvt8uedZ8CuEPl/64kNjCmqT71zIxNidELYEYJtUt/RXUiyz2mAvPCeVA3OLvdUX0z2lZOu6kRwwdqEekg2YqicUi5/HO/6AnXegSRXeQH0WReYtjbcxpPUpX/XxfU2yGxQqDgkMG2D2IVyBsJnxVdrOUBf75MFSe02JO++46YJJmsy/...
+meta_secret-lrs-payload: U2FsdGVkX18fLg33ChrHbHyIvbcdDwU6+4yX2yTb4gbDKOKSG3hhsd2+TS0ZK15fZlo4G1SQqaxm1OGo1fIsoji82T4SD4y5p1G2g9E9gAKzZC2Z5R454rw7/xGvX7uYGd/fbJcZraMYmafX1Zg3qA==
 ```
 
 The `meta_secret-lrs-payload` parameter allows you to securely define the LRS endpoint and authentication token for each meeting. It ensures that xAPI events generated during the meeting are sent to the correct LRS.
