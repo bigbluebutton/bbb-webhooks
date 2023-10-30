@@ -59,7 +59,7 @@ If you are editing these permanent urls after they have already been committed t
  - `redis-cli flushall`
  - **_IMPORTANT:_** Running the above command clears the redis database entirely. This will result in all meetings, processing or not, to be cleared from the database, and may result in broken meetings currently processing.
 
-## Production
+## Manually installing the application on a BBB server
 
 Follow the commands below starting within the `bigbluebutton/bbb-webhooks` directory.
 
@@ -79,3 +79,52 @@ Follow the commands below starting within the `bigbluebutton/bbb-webhooks` direc
 
 9. Start the bbb-webhooks service:
     - `sudo systemctl bbb-webhooks restart`
+
+## Running via Docker
+
+A sample docker-compose for convenience that should get the application image
+built and running with as little effort as possible. See the [Dockerfile](Dockerfile)
+and [docker-compose.yml](docker-compose.yml) for more details.
+
+To build and run the application image, run the following command from within
+the root directory of the project:
+
+```
+docker-compose up -d
+```
+
+To stop the application, run the following command from within the root directory
+of the project:
+
+```
+docker-compose down
+```
+
+The container runs with the default Node container user, `node`. To override it,
+feel free to set the `user` property in the `docker-compose.yml` file (e.g.: `user: ${UID}:${GID}`).
+
+### Configuring the application when running via Docker
+
+The application configuration can be modified by creating and editing an override
+file in `/etc/bigbluebutton/bbb-webhooks/production.yml`. The file will be mounted
+into the container and its contents will be *merged* with the default configuration.
+The only exception to this are array attributes, which are *replaced*.
+
+The default configuration file used by the container can be found at
+[config/default.example.yml](config/default.example.yml).
+
+As an example, suppose you want to override the `bbb.serverDomain` and
+`bbb.sharedSecret` values as well as enable the `out/xapi` module. You would
+create the following override file:
+
+```yaml
+bbb:
+  serverDomain: 'bbb.example.com'
+  sharedSecret: 'secret'
+modules:
+  ../out/xapi/index.js:
+    enabled: true
+```
+
+The rest of the configurable attributes can be found in the default configuration
+file at [config/default.example.yml](config/default.example.yml).
