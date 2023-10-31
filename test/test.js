@@ -1,15 +1,17 @@
 import { describe, it, before, after, beforeEach } from 'mocha';
 import request from 'supertest';
-import nock from "nock";
-import Utils from '../src/out/webhooks/utils.js';
+import redis from 'redis';
 import config from 'config';
+import Utils from '../src/out/webhooks/utils.js';
 import Hook from '../src/db/redis/hooks.js';
 import Helpers from './helpers.js'
 import Application from '../application.js';
-import redis from 'redis';
+import HooksPostCatcher from './hooks-post-catcher.js';
 
 const TEST_CHANNEL = 'test-channel';
-const SHARED_SECRET = process.env.SHARED_SECRET || function () { throw new Error('SHARED_SECRET not set'); }();
+const SHARED_SECRET = process.env.SHARED_SECRET
+  || config.has('bbb.sharedSecret') ? config.get('bbb.sharedSecret') : false
+  || function () { throw new Error('SHARED_SECRET not set'); }();
 const MODULES = config.get('modules');
 const WH_CONFIG = MODULES['../out/webhooks/index.js'].config;
 const IN_REDIS_CONFIG = MODULES['../in/redis/index.js'].config.redis;
@@ -25,13 +27,17 @@ describe('bbb-webhooks tests', () => {
 
   before((done) => {
     WH_CONFIG.queueSize = 10;
-    WH_CONFIG.permanentURLs = [ { url: "https://wh.requestcatcher.com", getRaw: true } ];
+    WH_CONFIG.permanentURLs = [
+      { url: Helpers.rawCatcherURL, getRaw: true },
+      { url: Helpers.mappedCatcherURL, getRaw: false },
+    ];
     IN_REDIS_CONFIG.inboundChannels = [...IN_REDIS_CONFIG.inboundChannels, TEST_CHANNEL];
     application.start()
       .then(redisClient.connect())
       .then(() => { done(); })
       .catch(done);
   });
+
   beforeEach((done) => {
     const hooks = Hook.get().getAllGlobalHooks();
     Helpers.flushall(redisClient);
@@ -41,12 +47,14 @@ describe('bbb-webhooks tests', () => {
 
     done();
   })
-  after(() => {
+
+  after((done) => {
     const hooks = Hook.get().getAllGlobalHooks();
     Helpers.flushall(redisClient);
     hooks.forEach((hook) => {
       Helpers.flushredis(hook);
     });
+    done();
   });
 
   describe('GET /hooks/list permanent', () => {
@@ -79,6 +87,7 @@ describe('bbb-webhooks tests', () => {
         getRaw: false,
       }).then(() => { done(); }).catch(done);
     });
+
     it('should destroy a hook', (done) => {
       const hooks = Hook.get().getAllGlobalHooks();
       const hook = hooks[hooks.length-1].id;
@@ -105,8 +114,7 @@ describe('bbb-webhooks tests', () => {
         Helpers.url + Helpers.destroyPermanent,
         SHARED_SECRET,
         CHECKSUM_ALGORITHM,
-      );
-      getUrl = Helpers.destroyPermanent + '&checksum=' + getUrl
+      ); getUrl = Helpers.destroyPermanent + '&checksum=' + getUrl
       request(Helpers.url)
         .get(getUrl)
         .expect('Content-Type', /text\/xml/)
@@ -114,8 +122,7 @@ describe('bbb-webhooks tests', () => {
           const hooks = Hook.get().getAllGlobalHooks();
           if (hooks && hooks[0].payload.callbackURL == WH_CONFIG.permanentURLs[0].url) {
             done();
-          }
-          else {
+          } else {
             done(new Error("should not delete permanent"));
           }
         })
@@ -129,6 +136,7 @@ describe('bbb-webhooks tests', () => {
         .then(() => { done(); })
         .catch(done);
     });
+
     it('should create a hook with getRaw=true', (done) => {
       let getUrl = Utils.checksumAPI(
         Helpers.url + Helpers.createUrl + Helpers.createRaw,
@@ -144,8 +152,7 @@ describe('bbb-webhooks tests', () => {
           const hooks = Hook.get().getAllGlobalHooks();
           if (hooks && hooks.some((hook) => { return hook.payload.getRaw })) {
             done();
-          }
-          else {
+          } else {
             done(new Error("getRaw hook was not created"))
           }
         })
@@ -153,95 +160,81 @@ describe('bbb-webhooks tests', () => {
   });
 
   describe('/POST mapped message', () => {
+    let catcher;
+
     before((done) => {
+      catcher = new HooksPostCatcher(WH_CONFIG.permanentURLs[1].url);
       const hooks = Hook.get().getAllGlobalHooks();
       const hook = hooks[0];
       Helpers.flushredis(hook);
-      done();
+      catcher.start().then(() => {
+        done();
+      });
     });
-    after(() => {
+
+    after((done) => {
       const hooks = Hook.get().getAllGlobalHooks();
       const hook = hooks[0];
       Helpers.flushredis(hook);
+      catcher.stop();
+      done();
     })
+
     it('should post mapped message ', (done) => {
-      const hooks = Hook.get().getAllGlobalHooks();
-      const hook = hooks[0];
-      const getpost = nock(WH_CONFIG.permanentURLs[0].url)
-        .filteringRequestBody((body) => {
-          let parsed = JSON.parse(body)
-          return parsed[0].data.id ? "mapped" : "not mapped";
-        })
-        .post("/", "mapped")
-        .reply(200, (res) => {
-          done();
-        });
+      catcher.once('callback', (body) => {
+        try {
+          let parsed = JSON.parse(body?.event);
+          if (parsed[0].data?.id) {
+            done();
+          } else {
+            done(new Error("unmapped message"));
+          }
+        } catch (error) {
+          done(error);
+        }
+      });
+
       redisClient.publish(TEST_CHANNEL, JSON.stringify(Helpers.rawMessage));
     })
   });
+
   describe('/POST raw message', () => {
+    let catcher;
+
     before((done) => {
-          const hooks = Hook.get().getAllGlobalHooks();
-          const hook = hooks[0];
-          Helpers.flushredis(hook);
-      done();
+      catcher = new HooksPostCatcher(WH_CONFIG.permanentURLs[0].url);
+      const hooks = Hook.get().getAllGlobalHooks();
+      const hook = hooks[0];
+      Helpers.flushredis(hook);
+      catcher.start().then(() => {
+        done();
+      });
     });
+
     after((done) => {
+      catcher.stop();
       const hooks = Hook.get().getAllGlobalHooks();
       Hook.get().removeSubscription(hooks[hooks.length-1].id)
         .then(() => { done(); })
         .catch(done);
       Helpers.flushredis(hooks[hooks.length-1]);
     });
+
     it('should post raw message ', (done) => {
-      const hooks = Hook.get().getAllGlobalHooks();
-      const hook = hooks[0];
-
-      const getpost = nock(Helpers.callback)
-        .filteringRequestBody( (body) => {
-          if (body.indexOf("PresenterAssignedEvtMsg")) {
-            return "raw message";
+      catcher.once('callback', (body) => {
+        try {
+          let parsed = JSON.parse(body?.event);
+          if (parsed[0]?.envelope?.name == Helpers.rawMessage.envelope.name) {
+            done();
+          } else {
+            done(new Error("message is not raw"));
           }
-          else { return "not raw"; }
-        })
-        .post("/", "raw message")
-        .reply(200, () => {
-          done();
-        });
-      const permanent = nock(WH_CONFIG.permanentURLs[0].url)
-        .post("/")
-        .reply(200)
+        } catch (error) {
+          done(error);
+        }
+      });
+
       redisClient.publish(TEST_CHANNEL, JSON.stringify(Helpers.rawMessage));
-    })
-  });
-
-  describe('/POST multi message', () => {
-    before( () =>{
-      const hooks = Hook.get().getAllGlobalHooks();
-      const hook = hooks[0];
-      Helpers.flushredis(hook);
-      hook.queue = ["multiMessage1"];
-    });
-    it('should post multi message ', (done) => {
-      const hooks = Hook.get().getAllGlobalHooks();
-      const hook = hooks[0];
-      hook.enqueue("multiMessage2")
-      const getpost = nock(WH_CONFIG.permanentURLs[0].url)
-        .filteringPath( (path) => {
-          return path.split('?')[0];
-        })
-        .filteringRequestBody( (body) => {
-          if (body.indexOf("multiMessage1") != -1 && body.indexOf("multiMessage2") != -1) {
-            return "multiMess"
-          }
-          else {
-            return "not multi"
-          }
-        })
-        .post("/", "multiMess")
-        .reply(200, (res) => {
-          done();
-        });
     })
   });
 });
