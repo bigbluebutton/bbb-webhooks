@@ -7,7 +7,7 @@ import Helpers from './helpers.js'
 import HooksPostCatcher from './hooks-post-catcher.js';
 
 const MODULES = config.get('modules');
-const WH_CONFIG = MODULES['../out/webhooks/index.js'].config;
+const WH_CONFIG = MODULES['../out/webhooks/index.js']?.config;
 const CHECKSUM_ALGORITHM = 'sha1';
 const WEBHOOKS_SUITE = process.env.WEBHOOKS_SUITE ? process.env.WEBHOOKS_SUITE === 'true' : false;
 
