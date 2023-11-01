@@ -1,46 +1,31 @@
 import { describe, it, before, after, beforeEach } from 'mocha';
 import request from 'supertest';
-import redis from 'redis';
 import config from 'config';
-import Utils from '../src/out/webhooks/utils.js';
-import Hook from '../src/db/redis/hooks.js';
+import Utils from '../../src/out/webhooks/utils.js';
+import Hook from '../../src/db/redis/hooks.js';
 import Helpers from './helpers.js'
-import Application from '../application.js';
 import HooksPostCatcher from './hooks-post-catcher.js';
 
-const TEST_CHANNEL = 'test-channel';
-const SHARED_SECRET = process.env.SHARED_SECRET
-  || config.has('bbb.sharedSecret') ? config.get('bbb.sharedSecret') : false
-  || function () { throw new Error('SHARED_SECRET not set'); }();
 const MODULES = config.get('modules');
 const WH_CONFIG = MODULES['../out/webhooks/index.js'].config;
-const IN_REDIS_CONFIG = MODULES['../in/redis/index.js'].config.redis;
 const CHECKSUM_ALGORITHM = 'sha1';
+const WEBHOOKS_SUITE = process.env.WEBHOOKS_SUITE ? process.env.WEBHOOKS_SUITE === 'true' : false;
 
-describe('bbb-webhooks tests', () => {
-  const application = new Application();
-  const redisClient = redis.createClient({
-    host: config.get('redis.host'),
-    port: config.get('redis.port'),
-    password: config.has('redis.password') ? config.get('redis.password') : undefined,
-  });
+export default function suite({
+  redisClient,
+  sharedSecret,
+  testChannel,
+  force,
+}) {
+  if (!WEBHOOKS_SUITE && !force) return;
 
   before((done) => {
-    WH_CONFIG.queueSize = 10;
-    WH_CONFIG.permanentURLs = [
-      { url: Helpers.rawCatcherURL, getRaw: true },
-      { url: Helpers.mappedCatcherURL, getRaw: false },
-    ];
-    IN_REDIS_CONFIG.inboundChannels = [...IN_REDIS_CONFIG.inboundChannels, TEST_CHANNEL];
-    application.start()
-      .then(redisClient.connect())
-      .then(() => { done(); })
-      .catch(done);
+    done();
   });
 
   beforeEach((done) => {
     const hooks = Hook.get().getAllGlobalHooks();
-    Helpers.flushall(redisClient);
+
     hooks.forEach((hook) => {
       Helpers.flushredis(hook);
     });
@@ -50,10 +35,11 @@ describe('bbb-webhooks tests', () => {
 
   after((done) => {
     const hooks = Hook.get().getAllGlobalHooks();
-    Helpers.flushall(redisClient);
+
     hooks.forEach((hook) => {
       Helpers.flushredis(hook);
     });
+
     done();
   });
 
@@ -61,7 +47,7 @@ describe('bbb-webhooks tests', () => {
     it('should list permanent hook', (done) => {
       let getUrl = Utils.checksumAPI(
         Helpers.url + Helpers.listUrl,
-        SHARED_SECRET, CHECKSUM_ALGORITHM
+        sharedSecret, CHECKSUM_ALGORITHM
       );
       getUrl = Helpers.listUrl + '?checksum=' + getUrl
 
@@ -93,7 +79,7 @@ describe('bbb-webhooks tests', () => {
       const hook = hooks[hooks.length-1].id;
       let getUrl = Utils.checksumAPI(
         Helpers.url + Helpers.destroyUrl(hook),
-        SHARED_SECRET,
+        sharedSecret,
         CHECKSUM_ALGORITHM,
       );
       getUrl = Helpers.destroyUrl(hook) + '&checksum=' + getUrl
@@ -112,7 +98,7 @@ describe('bbb-webhooks tests', () => {
     it('should not destroy the permanent hook', (done) => {
       let getUrl = Utils.checksumAPI(
         Helpers.url + Helpers.destroyPermanent,
-        SHARED_SECRET,
+        sharedSecret,
         CHECKSUM_ALGORITHM,
       ); getUrl = Helpers.destroyPermanent + '&checksum=' + getUrl
       request(Helpers.url)
@@ -140,7 +126,7 @@ describe('bbb-webhooks tests', () => {
     it('should create a hook with getRaw=true', (done) => {
       let getUrl = Utils.checksumAPI(
         Helpers.url + Helpers.createUrl + Helpers.createRaw,
-        SHARED_SECRET,
+        sharedSecret,
         CHECKSUM_ALGORITHM,
       );
       getUrl = Helpers.createUrl + '&checksum=' + getUrl + Helpers.createRaw
@@ -194,7 +180,7 @@ describe('bbb-webhooks tests', () => {
         }
       });
 
-      redisClient.publish(TEST_CHANNEL, JSON.stringify(Helpers.rawMessage));
+      redisClient.publish(testChannel, JSON.stringify(Helpers.rawMessage));
     })
   });
 
@@ -234,7 +220,21 @@ describe('bbb-webhooks tests', () => {
         }
       });
 
-      redisClient.publish(TEST_CHANNEL, JSON.stringify(Helpers.rawMessage));
+      redisClient.publish(testChannel, JSON.stringify(Helpers.rawMessage));
     })
   });
-});
+}
+
+export const MOD_CONFIG = {
+  '../out/webhooks/index.js': {
+    enabled: WEBHOOKS_SUITE,
+    config: {
+      queueSize: 10,
+      permanentURLs: [
+        { url: Helpers.rawCatcherURL, getRaw: true },
+        { url: Helpers.mappedCatcherURL, getRaw: false },
+      ],
+    },
+  },
+};
+
