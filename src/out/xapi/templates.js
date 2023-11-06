@@ -174,7 +174,7 @@ export default function getXAPIStatement(event, meeting_data, user_data = null, 
       }
 
       statement.context.contextActivities.parent = session_parent;
-      statement.timestamp = user_data?.time;
+      if (user_data?.time !== undefined) statement.timestamp = DateTime.fromMillis(user_data.time).toUTC().toISO();
     }
 
     // Custom 'poll-started' and 'poll-responded' attributes
