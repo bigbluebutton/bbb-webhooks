@@ -34,7 +34,7 @@ const generateTestCase = (event, redisClient, channel) => {
           //console.debug("Statement received", statement);
           const valid = validate(event, statement);
           if (!valid) {
-            done(new Error(`Event ${eventId} is not valid`));
+            done(new Error(`Event ${eventId} is not valid.\nStatement: ${JSON.stringify(statement)}`));
           } else {
             done();
           }
