@@ -1,7 +1,7 @@
 import { open } from 'node:fs/promises';
 import { fileURLToPath } from 'url';
 import { validate as validateUUID } from "uuid";
-import { DateTime } from "luxon";
+import { DateTime, Duration } from "luxon";
 const MAPPED_EVENTS_PATH = fileURLToPath(
   new URL('../../example/events/mapped-events.json', import.meta.url)
 );
@@ -42,112 +42,130 @@ const mapSamplesToEvents = async () => {
 }
 
 const isValidISODate = (dateString) => DateTime.fromISO(dateString, { zone: "utc", setZone: true }).isValid;
+const isValidISODuration = (durationString) => Duration.fromISO(durationString).isValid;
+
+const validateVerb = (statement, verbId) => statement.verb.id === verbId;
+
+const validateDefinitionType = (statement, definitionType) => statement.object.definition.type === definitionType;
 
 const validateCommonProperties = statement =>
   statement.context.contextActivities.category[0].id == "https://w3id.org/xapi/virtual-classroom"
 && statement.context.contextActivities.category[0].definition.type == "http://adlnet.gov/expapi/activities/profile"
+&& validateUUID(statement.object.id.substring(statement.object.id.length - 36))
 && validateUUID(statement.context.registration)
 && validateUUID(statement.context.extensions['https://w3id.org/xapi/cmi5/context/extensions/sessionid'])
 && Object.prototype.hasOwnProperty.call(statement, 'actor')
 && isValidISODate(statement.timestamp);
 
+const validateVirtualClassroomParent = statement =>
+  statement.context.contextActivities.parent[0].definition.type === 'https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom'
+&& validateUUID(statement.context.contextActivities.parent[0].id.substring(statement.context.contextActivities.parent[0].id.length - 36))
+
+const validatePoll = statement =>
+  statement.object.definition.interactionType === 'choice'
+    && Array.isArray(statement.object.definition.choices)
+
 const validators = {
   'meeting-created': (event, statement) => {
-    return statement.verb.id === 'http://adlnet.gov/expapi/verbs/initialized'
-    && statement.object.definition.type === 'https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom'
+    return validateVerb(statement, 'http://adlnet.gov/expapi/verbs/initialized')
+    && validateDefinitionType(statement, 'https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom')
+    && isValidISODuration(statement.context.extensions['http://id.tincanapi.com/extension/planned-duration'])
     && validateCommonProperties(statement);
   },
   'meeting-ended': (event, statement) => {
-    return statement.verb.id === 'http://adlnet.gov/expapi/verbs/terminated'
-    && statement.object.definition.type === 'https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom'
+    return validateVerb(statement, 'http://adlnet.gov/expapi/verbs/terminated')
+    && validateDefinitionType(statement, 'https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom')
+    && isValidISODuration(statement.result.duration)
+    && isValidISODuration(statement.context.extensions['http://id.tincanapi.com/extension/planned-duration'])
     && validateCommonProperties(statement);
   },
   'user-joined': (event, statement) => {
-    return statement.verb.id === 'http://activitystrea.ms/join'
-    && statement.object.definition.type === 'https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom'
+    return validateVerb(statement, 'http://activitystrea.ms/join')
+    && validateDefinitionType(statement, 'https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom')
     && validateCommonProperties(statement);
   },
   'user-left': (event, statement) => {
-    return statement.verb.id === 'http://activitystrea.ms/leave'
-    && statement.object.definition.type === 'https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom'
+    return validateVerb(statement, 'http://activitystrea.ms/leave')
+    && validateDefinitionType(statement, 'https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom')
     && validateCommonProperties(statement);
   },
   'user-audio-voice-enabled': (event, statement) => {
-    return statement.verb.id === 'http://activitystrea.ms/start'
-    && statement.object.definition.type === 'https://w3id.org/xapi/virtual-classroom/activity-types/micro'
+    return validateVerb(statement, 'http://activitystrea.ms/start')
+    && validateDefinitionType(statement, 'https://w3id.org/xapi/virtual-classroom/activity-types/micro')
     && validateCommonProperties(statement)
-    && statement.context.contextActivities.parent[0].definition.type === 'https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom';
+    && validateVirtualClassroomParent(statement);
   },
   'user-audio-voice-disabled': (event, statement) => {
-    return statement.verb.id === 'https://w3id.org/xapi/virtual-classroom/verbs/stopped'
-    && statement.object.definition.type === 'https://w3id.org/xapi/virtual-classroom/activity-types/micro'
+    return validateVerb(statement, 'https://w3id.org/xapi/virtual-classroom/verbs/stopped')
+    && validateDefinitionType(statement, 'https://w3id.org/xapi/virtual-classroom/activity-types/micro')
     && validateCommonProperties(statement)
-    && statement.context.contextActivities.parent[0].definition.type === 'https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom';
+    && validateVirtualClassroomParent(statement);
   },
   'user-audio-muted': (event, statement) => {
-    return statement.verb.id === 'https://w3id.org/xapi/virtual-classroom/verbs/stopped'
-    && statement.object.definition.type === 'https://w3id.org/xapi/virtual-classroom/activity-types/micro'
+    return validateVerb(statement, 'https://w3id.org/xapi/virtual-classroom/verbs/stopped')
+    && validateDefinitionType(statement, 'https://w3id.org/xapi/virtual-classroom/activity-types/micro')
     && validateCommonProperties(statement)
-    && statement.context.contextActivities.parent[0].definition.type === 'https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom';
+    && validateVirtualClassroomParent(statement);
   },
   'user-audio-unmuted': (event, statement) => {
-    return statement.verb.id === 'http://activitystrea.ms/start'
-    && statement.object.definition.type === 'https://w3id.org/xapi/virtual-classroom/activity-types/micro'
+    return validateVerb(statement, 'http://activitystrea.ms/start')
+    && validateDefinitionType(statement, 'https://w3id.org/xapi/virtual-classroom/activity-types/micro')
     && validateCommonProperties(statement)
-    && statement.context.contextActivities.parent[0].definition.type === 'https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom';
+    && validateVirtualClassroomParent(statement);
   },
   'user-cam-broadcast-start': (event, statement) => {
-    return statement.verb.id === 'http://activitystrea.ms/start'
-    && statement.object.definition.type === 'https://w3id.org/xapi/virtual-classroom/activity-types/camera'
+    return validateVerb(statement, 'http://activitystrea.ms/start')
+    && validateDefinitionType(statement, 'https://w3id.org/xapi/virtual-classroom/activity-types/camera')
     && validateCommonProperties(statement)
-    && statement.context.contextActivities.parent[0].definition.type === 'https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom';
+    && validateVirtualClassroomParent(statement);
   },
   'user-cam-broadcast-end': (event, statement) => {
-    return statement.verb.id === 'https://w3id.org/xapi/virtual-classroom/verbs/stopped'
-    && statement.object.definition.type === 'https://w3id.org/xapi/virtual-classroom/activity-types/camera'
+    return validateVerb(statement, 'https://w3id.org/xapi/virtual-classroom/verbs/stopped')
+    && validateDefinitionType(statement, 'https://w3id.org/xapi/virtual-classroom/activity-types/camera')
     && validateCommonProperties(statement)
-    && statement.context.contextActivities.parent[0].definition.type === 'https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom';
+    && validateVirtualClassroomParent(statement);
   },
   'meeting-screenshare-started': (event, statement) => {
-    return statement.verb.id === 'http://activitystrea.ms/share'
-    && statement.object.definition.type === 'https://w3id.org/xapi/virtual-classroom/activity-types/screen'
+    return validateVerb(statement, 'http://activitystrea.ms/share')
+    && validateDefinitionType(statement, 'https://w3id.org/xapi/virtual-classroom/activity-types/screen')
     && validateCommonProperties(statement)
-    && statement.context.contextActivities.parent[0].definition.type === 'https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom';
+    && validateVirtualClassroomParent(statement);
   },
   'meeting-screenshare-stopped': (event, statement) => {
-    return statement.verb.id === 'http://activitystrea.ms/unshare'
-    && statement.object.definition.type === 'https://w3id.org/xapi/virtual-classroom/activity-types/screen'
+    return validateVerb(statement, 'http://activitystrea.ms/unshare')
+    && validateDefinitionType(statement, 'https://w3id.org/xapi/virtual-classroom/activity-types/screen')
     && validateCommonProperties(statement)
-    && statement.context.contextActivities.parent[0].definition.type === 'https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom';
+    && validateVirtualClassroomParent(statement);
   },
   'chat-group-message-sent': (event, statement) => {
-    return statement.verb.id === 'https://w3id.org/xapi/acrossx/verbs/posted'
-    && statement.object.definition.type === 'https://w3id.org/xapi/acrossx/activities/message'
+    return validateVerb(statement, 'https://w3id.org/xapi/acrossx/verbs/posted')
+    && validateDefinitionType(statement, 'https://w3id.org/xapi/acrossx/activities/message')
     && validateCommonProperties(statement)
-    && statement.context.contextActivities.parent[0].definition.type === 'https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom';
+    && validateVirtualClassroomParent(statement);
   },
   'poll-started': (event, statement) => {
-    return statement.verb.id === 'http://adlnet.gov/expapi/verbs/asked'
-    && statement.object.definition.type === 'http://adlnet.gov/expapi/activities/cmi.interaction'
-    && statement.object.definition.interactionType === 'choice'
+    return validateVerb(statement, 'http://adlnet.gov/expapi/verbs/asked')
+    && validateDefinitionType(statement, 'http://adlnet.gov/expapi/activities/cmi.interaction')
+    && validatePoll(statement)
     && validateCommonProperties(statement)
-    && statement.context.contextActivities.parent[0].definition.type === 'https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom';
+    && validateVirtualClassroomParent(statement);
   },
   'poll-responded': (event, statement) => {
-    return statement.verb.id === 'http://adlnet.gov/expapi/verbs/answered'
-    && statement.object.definition.type === 'http://adlnet.gov/expapi/activities/cmi.interaction'
-    && statement.object.definition.interactionType === 'choice'
+    return validateVerb(statement, 'http://adlnet.gov/expapi/verbs/answered')
+    && validateDefinitionType(statement, 'http://adlnet.gov/expapi/activities/cmi.interaction')
+    && validatePoll(statement)
     && validateCommonProperties(statement)
-    && statement.context.contextActivities.parent[0].definition.type === 'https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom';
+    && validateVirtualClassroomParent(statement)
+    && Object.prototype.hasOwnProperty.call(statement.result, 'response');
   },
   'user-raise-hand-changed': (event, statement) => {
     const raisedHandVerb = "https://w3id.org/xapi/virtual-classroom/verbs/reacted";
     const loweredHandVerb = "https://w3id.org/xapi/virtual-classroom/verbs/unreacted";
     const isRaiseHand = event.data.attributes.user["raise-hand"];
-    return statement.verb.id === isRaiseHand ? raisedHandVerb : loweredHandVerb
-    && statement.object.definition.type === 'https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom'
-    && statement.result.extensions["https://w3id.org/xapi/virtual-classroom/extensions/emoji"] === 'U+1F590'
-    && validateCommonProperties(statement);
+    return validateVerb(statement, isRaiseHand ? raisedHandVerb : loweredHandVerb)
+    && validateDefinitionType(statement, 'https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom')
+    && validateCommonProperties(statement)
+    && statement.result.extensions["https://w3id.org/xapi/virtual-classroom/extensions/emoji"] === 'U+1F590';
   }
 }
 
