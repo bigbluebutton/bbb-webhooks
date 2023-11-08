@@ -66,12 +66,12 @@ const validatePoll = statement =>
     && Array.isArray(statement.object.definition.choices)
 
 const validators = {
-  'meeting-created': (event, statement) => {
-    return validateVerb(statement, 'http://adlnet.gov/expapi/verbs/initialized')
-    && validateDefinitionType(statement, 'https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom')
-    && isValidISODuration(statement.context.extensions['http://id.tincanapi.com/extension/planned-duration'])
-    && validateCommonProperties(statement);
-  },
+  // 'meeting-created': (event, statement) => {
+  //   return validateVerb(statement, 'http://adlnet.gov/expapi/verbs/initialized')
+  //   && validateDefinitionType(statement, 'https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom')
+  //   && isValidISODuration(statement.context.extensions['http://id.tincanapi.com/extension/planned-duration'])
+  //   && validateCommonProperties(statement);
+  // },
   'meeting-ended': (event, statement) => {
     return validateVerb(statement, 'http://adlnet.gov/expapi/verbs/terminated')
     && validateDefinitionType(statement, 'https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom')
@@ -173,7 +173,7 @@ const validate = (event, statement) => {
   const eventId = event.data.id;
   const validator = validators[eventId];
 
-  if (!validator) throw new Error(`No validator for ${statement.verb.id}`);
+  if (!validator) throw new Error(`No validator for eventId "${eventId}"`);
 
   return validator(event, statement);
 }
