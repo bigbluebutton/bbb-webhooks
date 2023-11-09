@@ -66,12 +66,12 @@ const validatePoll = statement =>
     && Array.isArray(statement.object.definition.choices)
 
 const validators = {
-  // 'meeting-created': (event, statement) => {
-  //   return validateVerb(statement, 'http://adlnet.gov/expapi/verbs/initialized')
-  //   && validateDefinitionType(statement, 'https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom')
-  //   && isValidISODuration(statement.context.extensions['http://id.tincanapi.com/extension/planned-duration'])
-  //   && validateCommonProperties(statement);
-  // },
+  'meeting-created': (event, statement) => {
+    return validateVerb(statement, 'http://adlnet.gov/expapi/verbs/initialized')
+    && validateDefinitionType(statement, 'https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom')
+    && isValidISODuration(statement.context.extensions['http://id.tincanapi.com/extension/planned-duration'])
+    && validateCommonProperties(statement);
+  },
   'meeting-ended': (event, statement) => {
     return validateVerb(statement, 'http://adlnet.gov/expapi/verbs/terminated')
     && validateDefinitionType(statement, 'https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom')
