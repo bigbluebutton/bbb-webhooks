@@ -143,13 +143,13 @@ export default class WebhooksEvent {
       }
 
       if (this.outputEvent) {
-        logger.info('output event mapped', this.outputEvent);
+        logger.debug('output event mapped', { event: this.outputEvent });
       }
 
       return this.outputEvent;
     }
 
-    logger.warn('invalid input event', this.inputEvent);
+    logger.warn('invalid input event', { event: this.inputEvent });
 
     return null;
   }
@@ -253,22 +253,6 @@ export default class WebhooksEvent {
     }
   }
 
-  handleUserEmojiChanged(message) {
-    try {
-      // < 2.7 => UserEmojiChangedEvtMsg also bundles the raiseHand action as an emoji
-      // >= 2.7 => UserEmojiChangedEvtMsg and UserRaiseHandChangedEvtMsg are separate events
-      //           and the raiseHand action is not bundled as an emoji anymore
-      const { body } = message.core;
-      const emoji = body.emoji || body.reactionEmoji;
-
-      if (emoji && emoji === "raiseHand") return "user-raise-hand-changed";
-      return "user-emoji-changed";
-    } catch (error) {
-      logger.error('error handling user emoji changed', error);
-      return "user-emoji-changed";
-    }
-  }
-
   handleUserMutedVoice(message) {
     try {
       const { body } = message.core;
@@ -334,9 +318,7 @@ export default class WebhooksEvent {
         break;
       }
       case "user-raise-hand-changed": {
-        const emoji = msgBody.emoji || msgBody.reactionEmoji;
-        const raiseHand = msgBody.raiseHand || emoji === "raiseHand";
-        this.outputEvent.data["attributes"]["user"]["raise-hand"] = raiseHand;
+        this.outputEvent.data["attributes"]["user"]["raise-hand"] = msgBody.raiseHand;
         break;
       }
       default:
@@ -554,7 +536,7 @@ export default class WebhooksEvent {
       case "PresenterAssignedEvtMsg": return "user-presenter-assigned";
       case "PresenterUnassignedEvtMsg": return "user-presenter-unassigned";
       case "UserEmojiChangedEvtMsg":
-      case "UserReactionEmojiChangedEvtMsg": return this.handleUserEmojiChanged(message);
+      case "UserReactionEmojiChangedEvtMsg": return 'user-emoji-changed';
       case "UserRaiseHandChangedEvtMsg": return "user-raise-hand-changed";
       case "GroupChatMessageBroadcastEvtMsg": return "chat-group-message-sent";
       case "PublishedRecordingSysMsg": return "rap-published";

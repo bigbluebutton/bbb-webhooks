@@ -4,6 +4,7 @@ import WebhooksEvent from '../process/event.js';
 import UserMapping from '../db/redis/user-mapping.js';
 import Utils from '../common/utils.js';
 import Metrics from '../metrics/index.js';
+import config from 'config';
 
 const Logger = newLogger('event-processor');
 
@@ -115,6 +116,63 @@ export default class EventProcessor {
     }
   }
 
+  _handleUserEmojiChangedEvent(outputEvent, rawEvent) {
+    const internalUserId = outputEvent.data.attributes.user["internal-user-id"];
+    const emoji = outputEvent.data.attributes.user.emoji;
+
+    this._notifyOutputModules(outputEvent, rawEvent);
+
+    // If the emoji changed to raiseHand, we're dealing with BBB < 2.7
+    // where the events weren't separated yet. In this case, we'll
+    // spoof a raiseHand event and store the state so we can
+    // spoof a raiseHand: false event when user-emoji-changed is
+    // called again with a different emoji.
+    if (emoji === 'raiseHand') {
+      const spoofedEvent = config.util.cloneDeep(outputEvent);
+      spoofedEvent.data.id = 'user-raise-hand-changed';
+      delete spoofedEvent.data.attributes.user.emoji;
+      spoofedEvent.data.attributes.user.raiseHand = true;
+
+      return UserMapping.get().updateWithField(
+        'internalUserID',
+        internalUserId, {
+          user: {
+            raiseHand: true,
+          },
+        }
+      ).catch((error) => {
+        Logger.error('error updating user mapping', error);}
+      ).finally(() => {
+        this._notifyOutputModules(spoofedEvent, rawEvent);
+      });
+    }
+
+    const userInfo = UserMapping.get().getUser(internalUserId);
+
+    // Emoji changed and raiseHand was true, so we'll spoof a raiseHand: false
+    if (userInfo != null && userInfo.raiseHand === true) {
+      const spoofedEvent = config.util.cloneDeep(outputEvent);
+      spoofedEvent.data.id = 'user-raise-hand-changed';
+      delete spoofedEvent.data.attributes.user.emoji;
+      spoofedEvent.data.attributes.user.raiseHand = false;
+
+      return UserMapping.get().updateWithField(
+        'internalUserID',
+        internalUserId, {
+          user: {
+            raiseHand: false,
+          },
+        }
+      ).catch((error) => {
+        Logger.error('error updating user mapping', error);
+      }).finally(() => {
+        this._notifyOutputModules(spoofedEvent, rawEvent);
+      });
+    }
+
+    return Promise.resolve();
+  }
+
   processInputEvent(event) {
     try {
       const rawEvent = this._parseEvent(event);
@@ -126,7 +184,8 @@ export default class EventProcessor {
         const internalMeetingId = outputEvent.data.attributes.meeting["internal-meeting-id"];
         IDMapping.get().reportActivity(internalMeetingId);
 
-        // First treat meeting events to add/remove ID mappings
+        // Any kind of retrocompatibility logic, output event post-processing,
+        // data storage et al. should be done here.
         switch (outputEvent.data.id) {
           case "meeting-created":
             IDMapping.get().addOrUpdateMapping(internalMeetingId,
@@ -225,6 +284,9 @@ export default class EventProcessor {
               this._notifyOutputModules(outputEvent, rawEvent);
             });
             break;
+          case "user-emoji-changed":
+            this._handleUserEmojiChangedEvent(outputEvent, rawEvent);
+            break;
           case "meeting-ended":
             this._handleMeetingEndedEvent(outputEvent).finally(() => {
               this._notifyOutputModules(outputEvent, rawEvent);
@@ -250,6 +312,10 @@ export default class EventProcessor {
       Logger.warn('no output modules registered');
       return;
     }
+
+    Logger.info('notifying output modules', {
+      event: message,
+    });
 
     this.outputs.forEach((output) => {
       output.onEvent(message, raw).catch((error) => {
