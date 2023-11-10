@@ -9,7 +9,8 @@ export default function decryptStr(encryptedObj, secret) {
   // Decode the base64-encoded text
   const encryptedText = Buffer.from(encryptedObj, 'base64');
 
-  // Extract salt (first 8 bytes) and ciphertext (the rest)
+  // Extract salt (bytes 8 to 15) and ciphertext (the rest)
+  // the first 8 bytes are reserved for OpenSSL's 'Salted__' magic prefix
   const salt = encryptedText.subarray(8, 16);
   const ciphertext = encryptedText.subarray(16);
 
