@@ -1,0 +1,21 @@
+env:
+  node: true
+  es2022: true
+extends:
+  - eslint:recommended
+  - plugin:import/recommended
+  - plugin:jsdoc/recommended
+parserOptions:
+  sourceType: module
+  ecmaVersion: 2022
+rules:
+  #quotes: ["warn", "single"]
+  no-console: "warn"
+  consistent-return: "warn"
+  no-trailing-spaces: "warn"
+  no-whitespace-before-property: "warn"
+  no-multiple-empty-lines: ["warn", { max: 1 }]
+  import/no-extraneous-dependencies: "error"
+  jsdoc/no-undefined-types: "off"
+  keyword-spacing: ["warn", { before: true, after: true }]
+  indent: ["warn", 2, { "SwitchCase": 1 }]

@@ -1,5 +1,8 @@
-// This is a simple wrapper to run the app with 'node app.js'
+/* eslint-disable-next-line no-unused-vars */
+import { NODE_CONFIG_DIR, SUPPRESS_NO_CONFIG_WARNING } from "./src/common/env.js";
+// eslint-disable-next-line no-unused-vars
+import config from 'config';
+import Application from './application.js';
 
-Application = require('./application.js');
-application = new Application();
+const application = new Application();
 application.start();
