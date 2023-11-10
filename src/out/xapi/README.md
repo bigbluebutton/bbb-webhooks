@@ -83,3 +83,11 @@ meta_secret-lrs-payload: U2FsdGVkX18fLg33ChrHbHyIvbcdDwU6+4yX2yTb4gbDKOKSG3hhsd2
 The `meta_secret-lrs-payload` parameter allows you to securely define the LRS endpoint and authentication token for each meeting. It ensures that xAPI events generated during the meeting are sent to the correct LRS.
 
 This strategy to connect to the LRS supports multi-tenancy, as each meeting could point to a different LRS endpoint. If this parameter is present in the metadata, the endpoint and credentials contained in the YML file (lrs_* parameters) are ignored and thus not required.
+
+# Testing xAPI statements
+A test suite for the xAPI statements is provided and can be run using the following command:
+```
+npm run test:xapi
+```
+
+The test suite uses the mapped events file `(example/mapped-events)` and test each event separately to ensure the xAPI module will generate correct statements for each event.

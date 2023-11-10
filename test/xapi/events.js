@@ -1,7 +1,8 @@
 import { open } from 'node:fs/promises';
 import { fileURLToPath } from 'url';
-import { validate as validateUUID } from "uuid";
-import { DateTime, Duration } from "luxon";
+import { validateVerb, validateDefinitionType, validateCommonProperties,
+  validatePlannedDuration, validateResultDuration, validateVirtualClassroomParent,
+  validatePoll, validatePollResponse, validateRaiseHandEmoji } from './validateFunctions.js';
 const MAPPED_EVENTS_PATH = fileURLToPath(
   new URL('../../example/events/mapped-events.json', import.meta.url)
 );
@@ -41,42 +42,18 @@ const mapSamplesToEvents = async () => {
   return eventList;
 }
 
-const isValidISODate = (dateString) => DateTime.fromISO(dateString, { zone: "utc", setZone: true }).isValid;
-const isValidISODuration = (durationString) => Duration.fromISO(durationString).isValid;
-
-const validateVerb = (statement, verbId) => statement.verb.id === verbId;
-
-const validateDefinitionType = (statement, definitionType) => statement.object.definition.type === definitionType;
-
-const validateCommonProperties = statement =>
-  statement.context.contextActivities.category[0].id == "https://w3id.org/xapi/virtual-classroom"
-&& statement.context.contextActivities.category[0].definition.type == "http://adlnet.gov/expapi/activities/profile"
-&& validateUUID(statement.object.id.substring(statement.object.id.length - 36))
-&& validateUUID(statement.context.registration)
-&& validateUUID(statement.context.extensions['https://w3id.org/xapi/cmi5/context/extensions/sessionid'])
-&& Object.prototype.hasOwnProperty.call(statement, 'actor')
-&& isValidISODate(statement.timestamp);
-
-const validateVirtualClassroomParent = statement =>
-  statement.context.contextActivities.parent[0].definition.type === 'https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom'
-&& validateUUID(statement.context.contextActivities.parent[0].id.substring(statement.context.contextActivities.parent[0].id.length - 36))
-
-const validatePoll = statement =>
-  statement.object.definition.interactionType === 'choice'
-    && Array.isArray(statement.object.definition.choices)
-
 const validators = {
   'meeting-created': (event, statement) => {
     return validateVerb(statement, 'http://adlnet.gov/expapi/verbs/initialized')
     && validateDefinitionType(statement, 'https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom')
-    && isValidISODuration(statement.context.extensions['http://id.tincanapi.com/extension/planned-duration'])
+    && validatePlannedDuration(statement)
     && validateCommonProperties(statement);
   },
   'meeting-ended': (event, statement) => {
     return validateVerb(statement, 'http://adlnet.gov/expapi/verbs/terminated')
     && validateDefinitionType(statement, 'https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom')
-    && isValidISODuration(statement.result.duration)
-    && isValidISODuration(statement.context.extensions['http://id.tincanapi.com/extension/planned-duration'])
+    && validateResultDuration(statement)
+    && validatePlannedDuration(statement)
     && validateCommonProperties(statement);
   },
   'user-joined': (event, statement) => {
@@ -156,16 +133,16 @@ const validators = {
     && validatePoll(statement)
     && validateCommonProperties(statement)
     && validateVirtualClassroomParent(statement)
-    && Object.prototype.hasOwnProperty.call(statement.result, 'response');
+    && validatePollResponse(statement);
   },
   'user-raise-hand-changed': (event, statement) => {
-    const raisedHandVerb = "https://w3id.org/xapi/virtual-classroom/verbs/reacted";
-    const loweredHandVerb = "https://w3id.org/xapi/virtual-classroom/verbs/unreacted";
-    const isRaiseHand = event.data.attributes.user["raise-hand"];
+    const raisedHandVerb = 'https://w3id.org/xapi/virtual-classroom/verbs/reacted';
+    const loweredHandVerb = 'https://w3id.org/xapi/virtual-classroom/verbs/unreacted';
+    const isRaiseHand = event.data.attributes.user['raise-hand'];
     return validateVerb(statement, isRaiseHand ? raisedHandVerb : loweredHandVerb)
     && validateDefinitionType(statement, 'https://w3id.org/xapi/virtual-classroom/activity-types/virtual-classroom')
     && validateCommonProperties(statement)
-    && statement.result.extensions["https://w3id.org/xapi/virtual-classroom/extensions/emoji"] === 'U+1F590';
+    && validateRaiseHandEmoji(statement);
   }
 }
 
@@ -173,7 +150,7 @@ const validate = (event, statement) => {
   const eventId = event.data.id;
   const validator = validators[eventId];
 
-  if (!validator) throw new Error(`No validator for eventId "${eventId}"`);
+  if (!validator) throw new Error(`No validator for eventId '${eventId}'`);
 
   return validator(event, statement);
 }
