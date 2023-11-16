@@ -72,10 +72,14 @@ export default class InRedis {
     return Promise.all(
       this.config.redis.inboundChannels.map((channel) => {
         return this.pubsub.subscribe(channel, this._onPubsubEvent.bind(this))
-        .then(() => this.logger.info(`subscribed to: ${channel}`))
-        .catch((error) => this.logger.error(`error subscribing to: ${channel}: ${error}`));
+          .then(() => this.logger.info(`subscribed to: ${channel}`))
+          .catch((error) => this.logger.error(`error subscribing to: ${channel}: ${error}`));
       })
     );
+  }
+
+  _onRedisError(error) {
+    this.logger.error("Redis client failure", error);
   }
 
   async load () {
@@ -85,6 +89,8 @@ export default class InRedis {
       this.pubsub = createClient({
         url: redisUrl,
       });
+      this.pubsub.on('error', this._onRedisError.bind(this));
+      this.pubsub.on('ready', () => this.logger.info('Redis client is ready'));
       await this.pubsub.connect();
       await this._subscribeToEvents();
     }

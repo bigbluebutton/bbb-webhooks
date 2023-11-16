@@ -34,6 +34,10 @@ export default class OutXAPI {
     return true;
   }
 
+  _onRedisError(error) {
+    this.logger.error("Redis client failure", error);
+  }
+
   async load() {
     if (this._validateConfig()) {
       const { url, password, host, port } = this.config.redis || this.config;
@@ -41,6 +45,8 @@ export default class OutXAPI {
       this.redisClient = createClient({
         url: redisUrl,
       });
+      this.redisClient.on('error', this._onRedisError.bind(this));
+      this.redisClient.on('ready', () => this.logger.info('Redis client is ready'));
 
       await this.redisClient.connect();
 
