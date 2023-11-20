@@ -190,7 +190,7 @@ export default class ModuleManager {
     for (var proc in this.modules) {
       if (Object.prototype.hasOwnProperty.call(this.modules, proc)) {
         let procObj = this.modules[proc];
-        if (typeof procObj.stop === 'function') procObj.stop()
+        if (typeof procObj.unload === 'function') procObj.unload();
       }
     }
 
