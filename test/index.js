@@ -6,8 +6,7 @@ import WebhooksSuite, { MOD_CONFIG as WH_CONFIG } from './webhooks/index.js';
 import XAPISuite, { MOD_CONFIG as XAPI_CONFIG } from './xapi/index.js';
 
 let MODULES = config.get('modules');
-MODULES = config.util.extendDeep(MODULES, XAPI_CONFIG);
-MODULES = config.util.extendDeep(MODULES, WH_CONFIG);
+MODULES = config.util.extendDeep(MODULES, WH_CONFIG, XAPI_CONFIG);
 
 const IN_REDIS_CONFIG = MODULES['../in/redis/index.js'].config.redis;
 const SHARED_SECRET = process.env.SHARED_SECRET

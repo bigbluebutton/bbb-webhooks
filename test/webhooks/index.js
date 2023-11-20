@@ -10,6 +10,7 @@ const MODULES = config.get('modules');
 const WH_CONFIG = MODULES['../out/webhooks/index.js']?.config;
 const CHECKSUM_ALGORITHM = 'sha1';
 const WEBHOOKS_SUITE = process.env.WEBHOOKS_SUITE ? process.env.WEBHOOKS_SUITE === 'true' : false;
+const ALL_TESTS = process.env.ALL_TESTS ? process.env.ALL_TESTS === 'true' : true;
 
 export default function suite({
   redisClient,
@@ -227,7 +228,7 @@ export default function suite({
 
 export const MOD_CONFIG = {
   '../out/webhooks/index.js': {
-    enabled: WEBHOOKS_SUITE,
+    enabled: WEBHOOKS_SUITE || ALL_TESTS,
     config: {
       queueSize: 10,
       permanentURLs: [

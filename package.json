@@ -6,9 +6,9 @@
   "scripts": {
     "start": "node app.js",
     "dev-start": "nodemon --watch src --ext js,json,yml,yaml --exec node app.js",
-    "test": "LOG_LEVEL=silent ALL_TESTS=true ALLOW_CONFIG_MUTATIONS=true mocha",
-    "test:webhooks": "LOG_LEVEL=silent ALL_TESTS=false ALLOW_CONFIG_MUTATIONS=true WEBHOOKS_SUITE=true mocha",
-    "test:xapi": "LOG_LEVEL=silent ALL_TESTS=false ALLOW_CONFIG_MUTATIONS=true XAPI_SUITE=true mocha",
+    "test": "LOG_LEVEL=silent ALL_TESTS=true ALLOW_CONFIG_MUTATIONS=true mocha --exit",
+    "test:webhooks": "LOG_LEVEL=silent ALL_TESTS=false ALLOW_CONFIG_MUTATIONS=true WEBHOOKS_SUITE=true mocha --exit",
+    "test:xapi": "LOG_LEVEL=silent ALL_TESTS=false ALLOW_CONFIG_MUTATIONS=true XAPI_SUITE=true mocha --exit",
     "lint": "./node_modules/.bin/eslint ./",
     "lint:file": "./node_modules/.bin/eslint",
     "jsdoc": "./node_modules/.bin/jsdoc app.js application.js src/ -r"
