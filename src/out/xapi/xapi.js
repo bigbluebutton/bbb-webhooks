@@ -62,7 +62,9 @@ export default class XAPI {
       headers,
     };
 
-    const xAPIEndpoint = new URL("xAPI/statements", lrs_endpoint);
+    // Remove /xapi(/)(statements)(/) from the end of the lrs_endpoint to ensure the correct endpoint is used
+    const fixed_lrs_endpoint = lrs_endpoint.replace(/\/xapi\/?(statements)?\/?$/i, '');
+    const xAPIEndpoint = new URL("xAPI/statements", fixed_lrs_endpoint);
 
     try {
       const response = await fetch(xAPIEndpoint, requestOptions);
