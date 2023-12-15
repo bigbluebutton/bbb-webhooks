@@ -102,6 +102,7 @@ export default class XAPI {
         meeting_data.create_time = event.data.attributes.meeting["create-time"];
         meeting_data.meeting_name = event.data.attributes.meeting.name;
         meeting_data.xapi_enabled = event.data.attributes.meeting.metadata?.["xapi-enabled"] !== 'false' ? 'true' : 'false';
+        meeting_data.create_end_actor_name = event.data.attributes.meeting.metadata?.["xapi-create-end-actor-name"] || "<unknown>";
 
         const lrs_payload = event.data.attributes.meeting.metadata?.["secret-lrs-payload"];
         let lrs_endpoint = '';
