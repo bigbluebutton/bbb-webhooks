@@ -57,6 +57,11 @@ You have the option to set relevant metadata when creating a meeting in Big Blue
 
 If you set `meta_xapi-enabled` to false, no xAPI events will be generated or sent to the LRS for that particular meeting. This provides the flexibility to choose which meetings should be tracked using xAPI.
 
+### meta_xapi-create-end-actor-name
+- **Description**: This parameter specifies the actor name to be used in the meeting-created/ended (Initialized/Terminated) statements
+- **Value Format**: string
+- **Default Value**: `<unknown>`
+
 ### meta_secret-lrs-payload
 - **Description**: This parameter allows you to specify the credentials and endpoint of the Learning Record Store (LRS) where the xAPI events will be sent. The payload is a Base64-encoded string representing a JSON object encrypted (AES 256/PBKDF2) using the **server secret** as the **passphrase**.
 - **Value Format**: Base64-encoded JSON object encrypted with AES 256/PBKDF2 encryption

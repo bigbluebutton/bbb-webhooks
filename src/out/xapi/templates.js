@@ -14,7 +14,8 @@ export default function getXAPIStatement(event, meeting_data, user_data = null, 
     context_registration,
     session_id,
     planned_duration,
-    create_time } = meeting_data;
+    create_time,
+    create_end_actor_name } = meeting_data;
 
   const planned_duration_ISO = Duration.fromObject({ minutes: planned_duration }).toISO();
   const create_time_ISO = DateTime.fromMillis(create_time).toUTC().toISO();
@@ -106,12 +107,14 @@ export default function getXAPIStatement(event, meeting_data, user_data = null, 
 
     // Custom 'meeting-created' attributes
     if (eventId == 'meeting-created') {
+      statement.actor.account.name = create_end_actor_name;
       statement.context.extensions["http://id.tincanapi.com/extension/planned-duration"] = planned_duration_ISO
       statement.timestamp = create_time_ISO;
     }
 
     // Custom 'meeting-ended' attributes
     else if (eventId == 'meeting-ended') {
+      statement.actor.account.name = create_end_actor_name;
       statement.context.extensions["http://id.tincanapi.com/extension/planned-duration"] = planned_duration_ISO
       statement.result = {
         "duration": Duration.fromMillis(eventTs - create_time).toISO()
