@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ### v3.0.0-beta.1
 
+* fix(xapi): ensure the correct lrs_endpoint is used
+* feat(xapi): add suport for meta_xapi-create-end-actor-name
+
+### v3.0.0-beta.0
+
 * feat(test): add support for modular test suites
 * feat(test): add xAPI test suite
 * refactor(test): remove nock as a dependency
