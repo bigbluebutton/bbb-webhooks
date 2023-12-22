@@ -43,7 +43,7 @@ export default class API {
     this.app.use((req, res, next) => {
       const { method, url, baseUrl, path } = req;
 
-      API.logger.info(`Received: ${method} request to ${baseUrl + path}`, {
+      API.logger.info(`received: ${method} request to ${baseUrl + path}`, {
         clientData: clientDataSimple(req),
         url,
       });
@@ -224,7 +224,7 @@ export default class API {
       next();
     } else {
       const urlObj = url.parse(req.url, true);
-      API.logger.info('checksum check failed, sending a checksumError response', responses.checksumError);
+      API.logger.warn('invalid checksum', { response: responses.checksumError });
       API.respondWithXML(res, responses.checksumError);
       this._exporter.agent.increment(METRIC_NAMES.API_REQUEST_FAILURES_XML, {
         method: req.method,
