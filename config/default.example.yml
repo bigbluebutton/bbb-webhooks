@@ -90,6 +90,11 @@ modules:
       # callback POST requests. One of: sha1, sha256, sha384 or sha512
       # Default: sha1
       hookChecksumAlgorithm: sha1
+      # Events to be included on the callback POST request. If not set,
+      # all events will that aren't excluded will be included.
+      includeEvents: []
+      # Events to be excluded on the callback POST request.
+      excludeEvents: []
       # IP where permanent hook will post data (more than 1 URL means more than 1 permanent hook)
       permanentURLs: []
       # How many messages will be enqueued to be processed at the same time

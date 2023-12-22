@@ -43,6 +43,12 @@ modules:
         port: SERVER_PORT
         supportedChecksumAlgorithms: SUPPORTED_CHECKSUM_ALGORITHMS
       hookChecksumAlgorithm: HOOK_CHECKSUM_ALGORITHM
+      includeEvents:
+        __name: INCLUDE_EVENTS
+        __format: json
+      excludeEvents:
+        __name: EXCLUDE_EVENTS
+        __format: json
       queue:
         enabled: ENABLE_WH_QUEUE
       permanentURLs:

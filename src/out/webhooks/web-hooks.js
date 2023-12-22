@@ -87,6 +87,31 @@ class WebHooks {
   }
 
   /**
+   * _shouldIgnoreEvent - Check if an event should be ignored according to
+   *                      the includeEvents/excludeEvents configurations.
+   * @param {object} event - The event to be checked.
+   * @returns {boolean} - Whether the event should be ignored or not.
+   * @private
+   */
+  _shouldIgnoreEvent(event) {
+    const eventId = event?.data?.id;
+    const filterIn = this.config.includeEvents || [];
+    const filterOut = this.config.excludeEvents || [];
+
+    if (filterIn.length > 0 && !filterIn.includes(eventId)) {
+      this.logger.debug('event not included in the list of events to be sent', { eventId });
+      return true;
+    }
+
+    if (filterOut.length > 0 && filterOut.includes(eventId)) {
+      this.logger.debug('event included in the list of events to be ignored', { eventId });
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
    * createPermanentHooks - Create permanent hooks.
    * @returns {Promise} - A promise that resolves when all permanent hooks have been created.
    * @public
@@ -193,6 +218,7 @@ class WebHooks {
     });
   }
 
+
   /**
    * onEvent - Handles incoming events received by the main application (relayed
    *           from this module's entrypoint, OutWebHooks).
@@ -203,6 +229,8 @@ class WebHooks {
    * @async
    */
   onEvent(event, raw) {
+    if (this._shouldIgnoreEvent(event)) return Promise.resolve();
+
     const meetingID = this._extractIntMeetingID(event);
     let hooks = HookCompartment.get().getAllGlobalHooks();
 
