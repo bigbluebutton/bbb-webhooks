@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+### v3.0.0-beta.2
+
+fix(webhooks): re-implement includeEvents/excludeEvents
+
 ### v3.0.0-beta.1
 
 * fix(xapi): ensure the correct lrs_endpoint is used
