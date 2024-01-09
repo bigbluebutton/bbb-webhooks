@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+### v3.0.0-beta.4 (UNRELEASED)
+
+* build: set .nvmrc to lts/iron (Node.js 20)
+
 ### v3.0.0-beta.3
 
 * build: bullmq@4.17.0, bump transitive deps
