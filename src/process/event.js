@@ -367,9 +367,10 @@ export default class WebhooksEvent {
         "id": this.mapInternalMessage(messageObj),
         "attributes": {
           "meeting": {
-            "internal-meeting-id": data.recordId,
+            "internal-meeting-id": data.internalMeetingId,
             "external-meeting-id": IDMapping.get().getExternalMeetingID(data.recordId)
-          }
+          },
+          "record-id": data.recordId
         },
         "event": {
           "ts": Date.now()
