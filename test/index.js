@@ -17,10 +17,10 @@ const TEST_CHANNEL = 'test-channel';
 
 describe('bbb-webhooks test suite', () => {
   const application = new Application();
+  const { host, port, password } = config.get('redis');
+  const redisUrl = `redis://${password ? `:${password}@` : ''}${host}:${port}`;
   const redisClient = redis.createClient({
-    host: config.get('redis.host'),
-    port: config.get('redis.port'),
-    password: config.has('redis.password') ? config.get('redis.password') : undefined,
+    url: redisUrl,
   });
 
   before((done) => {
