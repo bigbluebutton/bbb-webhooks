@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ### v3.0.0-beta.4 (UNRELEASED)
 
+* fix: pick up mocha configs via new .mocharc.yml file
 * build: set .nvmrc to lts/iron (Node.js 20)
 
 ### v3.0.0-beta.3
