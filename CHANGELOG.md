@@ -2,9 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+### v3.0.0-beta.3
+
+* build: bullmq@4.17.0, bump transitive deps
+
 ### v3.0.0-beta.2
 
-fix(webhooks): re-implement includeEvents/excludeEvents
+* fix(webhooks): re-implement includeEvents/excludeEvents
 
 ### v3.0.0-beta.1
 
