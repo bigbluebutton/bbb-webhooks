@@ -33,5 +33,3 @@ jobs:
           context: .
           cache-from: |
             type=registry,ref=${{ vars.REGISTRY_DOMAIN }}/${{ vars.REGISTRY_ORGANIZATION }}/bbb-webhooks:${{ github.ref_name }}
-          cache-to: |
-            type=registry,ref=${{ vars.REGISTRY_DOMAIN }}/${{ vars.REGISTRY_ORGANIZATION }}/bbb-webhooks:${{ github.ref_name }},mode=max,image-manifest=true
