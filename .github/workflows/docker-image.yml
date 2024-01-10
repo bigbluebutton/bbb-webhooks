@@ -35,8 +35,11 @@ jobs:
           push: true
           tags: ${{ vars.REGISTRY_URI }}/${{ vars.REGISTRY_ORGANIZATION }}/bbb-webhooks:${{ github.ref_name }}
           context: .
+          platforms: linux/amd64
           cache-from: |
             type=registry,ref=${{ vars.REGISTRY_DOMAIN }}/${{ vars.REGISTRY_ORGANIZATION }}/bbb-webhooks:${{ github.ref_name }}
+          cache-to: |
+            type=registry,ref=${{ vars.REGISTRY_DOMAIN }}/${{ vars.REGISTRY_ORGANIZATION }}/bbb-webhooks:${{ github.ref_name }},mode=max,image-manifest=true
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
