@@ -1,22 +1,11 @@
-name: Build and push to Dockerhub
+name: Run tests
 on:
   push:
 permissions:
   contents: read
 jobs:
-  hadolint:
-    runs-on: ubuntu-22.04
-
-    steps:
-    - uses: actions/checkout@v3
-
-    # TODO add hadolint output as comment on PR
-    # https://github.com/hadolint/hadolint-action#output
-    - uses: hadolint/hadolint-action@v3.1.0
-      with:
-        dockerfile: Dockerfile
-
-  main:
+  tests:
+    name: Run tests
     # https://docs.github.com/en/actions/using-containerized-services/creating-redis-service-containers#running-jobs-in-containers
     # Containers must run in Linux based operating systems
     runs-on: ubuntu-22.04
