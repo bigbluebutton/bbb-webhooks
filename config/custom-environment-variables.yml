@@ -57,3 +57,5 @@ modules:
       requestTimeout:
         __name: REQUEST_TIMEOUT
         __format: json
+  ../out/xapi/index.js:
+    enabled: XAPI_ENABLED
