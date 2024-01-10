@@ -39,7 +39,7 @@ class WebHooks {
    * @private
    */
   _processRaw(hook, rawEvent) {
-    if (hook == null || !hook?.payload?.getRaw || !this.config.getRaw) return Promise.resolve();
+    if (hook == null || !hook?.payload?.getRaw) return Promise.resolve();
 
     this.logger.info('dispatching raw event to hook', { callbackURL: hook.payload.callbackURL });
 

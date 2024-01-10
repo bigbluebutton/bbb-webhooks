@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ### v3.0.0-beta.4 (UNRELEASED)
 
+* !fix(webhooks): remove general getRaw configuration
 * fix(test): use redisUrl for node-redis client configuration
 * fix(test): pick up mocha configs via new .mocharc.yml file
 * build: set .nvmrc to lts/iron (Node.js 20)
