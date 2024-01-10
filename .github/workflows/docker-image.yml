@@ -23,7 +23,7 @@ jobs:
           password: ${{ secrets.REGISTRY_TOKEN }}
 
       - name: Build and push image
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v5
         with:
           push: true
           tags: "${{ vars.REGISTRY_ORGANIZATION }}/bbb-webhooks:${{ github.ref_name }}"
