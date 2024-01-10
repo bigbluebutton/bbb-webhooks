@@ -42,8 +42,7 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ vars.REGISTRY_URI }}/${{ vars.REGISTRY_ORGANIZATION }}/bbb-webhooks:${{ github.ref_name }}
-          format: 'template'
-          template: '@/contrib/sarif.tpl'
+          format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
         env:
