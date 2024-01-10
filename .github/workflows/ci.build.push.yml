@@ -19,7 +19,7 @@ jobs:
   main:
     # https://docs.github.com/en/actions/using-containerized-services/creating-redis-service-containers#running-jobs-in-containers
     # Containers must run in Linux based operating systems
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     # Docker Hub image that `container-job` executes in
     container: node:20-alpine
 
@@ -46,7 +46,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Connect to Redis
+      - name: Copy config
+        run: cp config/default.example.yml config/default.yml
+
+      - name: Run tests
         # Runs a script that creates a Redis client, populates
         # the client with data, and retrieves data
         run: npm run test
