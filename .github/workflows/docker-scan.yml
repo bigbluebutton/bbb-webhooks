@@ -1,8 +1,6 @@
 name: Run trivy
 on:
   push:
-permissions:
-  contents: read
 jobs:
   hadolint:
     name: Run trivy check
