@@ -1,4 +1,4 @@
-name: Build and push to Dockerhub
+name: Build and push to registry
 on:
   push:
 permissions:
@@ -28,5 +28,3 @@ jobs:
           push: true
           tags: "${{ vars.REGISTRY_ORGANIZATION }}/bbb-webhooks:${{ github.ref_name }}"
           context: .
-          cache-from: type=registry,ref=user/app:latest
-          cache-to: type=inline
