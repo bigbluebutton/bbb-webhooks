@@ -44,9 +44,6 @@ export default class WebhooksEvent {
     "rap-post-process-ended",
     "rap-publish-started",
     "rap-publish-ended",
-    "rap-published",
-    "rap-unpublished",
-    "rap-deleted",
     "rap-post-publish-started",
     "rap-post-publish-ended",
     "poll-started",
@@ -367,9 +364,10 @@ export default class WebhooksEvent {
         "id": this.mapInternalMessage(messageObj),
         "attributes": {
           "meeting": {
-            "internal-meeting-id": data.recordId,
+            "internal-meeting-id": data.internalMeetingId,
             "external-meeting-id": IDMapping.get().getExternalMeetingID(data.recordId)
-          }
+          },
+          "record-id": data.recordId
         },
         "event": {
           "ts": Date.now()
