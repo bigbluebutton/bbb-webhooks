@@ -1,0 +1,19 @@
+name: Run hadolint
+on:
+  workflow_dispatch:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  hadolint:
+    name: Run hadolint check
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v3
+
+    # TODO add hadolint output as comment on PR
+    # https://github.com/hadolint/hadolint-action#output
+    - uses: hadolint/hadolint-action@v3.1.0
+      with:
+        dockerfile: Dockerfile
