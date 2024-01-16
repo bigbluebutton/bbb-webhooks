@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ### v3.0.0-beta.4 (UNRELEASED)
 
+* fix: use ISO timestamps in production logs
 * chore: remove unused events
   * `rap-published`, `rap-unpublished`, `rap-deleted`
 * chore: support internal_meeting_id != record_id on rap events

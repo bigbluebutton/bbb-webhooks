@@ -94,6 +94,7 @@ const _newLogger = ({
     level,
     hooks,
     redact: ['config.server.secret'],
+    timestamp: pino.stdTimeFunctions.isoTime,
   }, targets);
 
   return logger;
