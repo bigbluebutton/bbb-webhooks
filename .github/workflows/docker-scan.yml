@@ -1,6 +1,6 @@
-name: Run trivy
+name: Run trivy on filesystem
 on:
-  push:
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:

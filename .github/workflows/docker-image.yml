@@ -1,10 +1,22 @@
-name: Build and push to registry
+name: Build and push image to registry
 on:
+  pull_request:
+    types: [synchronize]
+  release:
+    types: [published]
   push:
+    tags:
+      - '*'
 permissions:
   contents: read
 jobs:
-  main:
+  hadolint:
+    uses: ./.github/workflows/docker-lint.yml
+
+  tests:
+    uses: ./.github/workflows/docker-tests.yml
+
+  build:
     permissions:
       contents: read # for actions/checkout to fetch code
       security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
@@ -26,20 +38,51 @@ jobs:
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_TOKEN }}
 
+      - uses: rlespinasse/github-slug-action@v4
+
+      - name: Calculate tag
+        id: tag
+        run: |
+          if [ "$GITHUB_EVENT_NAME" == "pull_request" ]; then
+            TAG="pr-${{ github.event.number }}"
+          else
+            TAG=${{ github.ref_name }}
+          fi
+          echo "IMAGE=${{ vars.REGISTRY_URI }}/${{ vars.REGISTRY_ORGANIZATION }}/bbb-webhooks:$TAG" >> $GITHUB_OUTPUT
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ steps.tag.outputs.IMAGE }}
+
       - name: Build and push image
         uses: docker/build-push-action@v5
         with:
           push: true
-          tags: ${{ vars.REGISTRY_URI }}/${{ vars.REGISTRY_ORGANIZATION }}/bbb-webhooks:${{ github.ref_name }}
+          tags: ${{ steps.tag.outputs.IMAGE }}
           context: .
           platforms: linux/amd64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=${{ steps.tag.outputs.IMAGE }}
+          cache-to: type=registry,ref=${{ steps.tag.outputs.IMAGE }},image-manifest=true,oci-mediatypes=true,mode=max
+        labels: |
+          ${{ steps.meta.outputs.labels }}
+
+      - Name: Add comment to access image
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: "Docker image available on ${{ steps.tag.outputs.IMAGE }}"
+            })
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ vars.REGISTRY_URI }}/${{ vars.REGISTRY_ORGANIZATION }}/bbb-webhooks:${{ github.ref_name }}
+          image-ref: ${{ steps.tag.outputs.IMAGE }}
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
