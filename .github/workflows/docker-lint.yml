@@ -1,6 +1,7 @@
 name: Run hadolint
 on:
   workflow_dispatch:
+  workflow_call:
 permissions:
   contents: read
 jobs:
