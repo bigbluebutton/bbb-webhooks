@@ -65,8 +65,8 @@ jobs:
           platforms: linux/amd64
           cache-from: type=registry,ref=${{ steps.tag.outputs.IMAGE }}
           cache-to: type=registry,ref=${{ steps.tag.outputs.IMAGE }},image-manifest=true,oci-mediatypes=true,mode=max
-        labels: |
-          ${{ steps.meta.outputs.labels }}
+          labels: |
+            ${{ steps.meta.outputs.labels }}
 
       - Name: Add comment to access image
         uses: actions/github-script@v7
