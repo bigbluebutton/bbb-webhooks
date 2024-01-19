@@ -80,7 +80,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: "Docker image available on ${{ steps.tag.outputs.IMAGE }}"
+              body: "Updated Docker image pushed to `${{ steps.tag.outputs.IMAGE }}`"
             })
 
       - name: Run Trivy vulnerability scanner
