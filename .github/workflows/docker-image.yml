@@ -1,9 +1,8 @@
 name: Build and push image to registry
 on:
   pull_request:
-    types: [synchronize]
-  release:
-    types: [published]
+    types:
+      - synchronize
   push:
     tags:
       - '*'
