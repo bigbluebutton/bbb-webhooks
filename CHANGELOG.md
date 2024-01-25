@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+### v3.0.0-beta.5
+
+* feat: pipelines with GitHub Actions
+
 ### v3.0.0-beta.4
 
 * fix: use ISO timestamps in production logs
