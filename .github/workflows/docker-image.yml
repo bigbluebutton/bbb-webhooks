@@ -2,6 +2,8 @@ name: Build and push image to registry
 on:
   pull_request:
     types:
+      - opened
+      - reopened
       - synchronize
   push:
     tags:
