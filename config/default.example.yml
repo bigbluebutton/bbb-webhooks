@@ -1,3 +1,18 @@
+log:
+  level: info
+  # Wether to log to stdout or not
+  stdout: true
+  # Wether to log to log.filename or not
+  file: false
+  filename: /var/log/bbb-webhooks.log
+
+prometheus:
+  enabled: false
+  host: 127.0.0.1
+  port: 3004
+  path: /metrics
+  collectDefaultMetrics: false
+
 # Shared secret of your BigBlueButton server.
 bbb:
   serverDomain: myserver.com
@@ -6,65 +21,125 @@ bbb:
   auth2_0: false
   apiPath: /bigbluebutton/api
 
-# The port in which the API server will run.
-server:
-  bind: 127.0.0.1
-  port: 3005
-
-# Web hooks configs
-hooks:
-  channels:
-    - from-akka-apps-redis-channel
-    - from-bbb-web-redis-channel
-    - from-akka-apps-chat-redis-channel
-    - from-akka-apps-pres-redis-channel
-    - bigbluebutton:from-bbb-apps:meeting
-    - bigbluebutton:from-bbb-apps:users
-    - bigbluebutton:from-rap
-  # IP where permanent hook will post data (more than 1 URL means more than 1 permanent hook)
-  permanentURLs: []
-  # How many messages will be enqueued to be processed at the same time
-  queueSize: 10000
-  # Allow permanent hooks to receive raw message, which is the message straight from BBB
-  getRaw: true
-  # If set to higher than 1, will send events on the format:
-  # "event=[{event1},{event2}],timestamp=000" or "[{event1},{event2}]" (based on using auth2_0 or not)
-  # when there are more than 1 event on the queue at the moment of processing the queue.
-  multiEvent: 1
-  # Retry intervals for failed attempts for perform callback calls.
-  # In ms. Totals to around 5min.
-  retryIntervals:
-    - 100
-    - 500
-    - 1000
-    - 2000
-    - 4000
-    - 8000
-    - 10000
-    - 30000
-    - 60000
-    - 60000
-    - 60000
-    - 60000
-  # Reset permanent interval when exceeding maximum attemps
-  permanentIntervalReset: 8
-  # Hook's request module timeout for socket conn establishment and/or responses (ms)
-  requestTimeout: 5000
-
 # Mappings of internal to external meeting IDs
 mappings:
   cleanupInterval: 10000 # 10 secs, in ms
-  timeout: 86400000 # 24 hours, in ms
+  timeout: 604800000 # 1 week, in ms
 
 # Redis
 redis:
   host: 127.0.0.1
   port: 6379
   keys:
-    hookPrefix: bigbluebutton:webhooks:hook
-    hooks: bigbluebutton:webhooks:hooks
-    mappings: bigbluebutton:webhooks:mappings
-    mappingPrefix: bigbluebutton:webhooks:mapping
-    eventsPrefix: bigbluebutton:webhooks:events
-    userMaps: bigbluebutton:webhooks:userMaps
-    userMapPrefix: bigbluebutton:webhooks:userMap
+    hookPrefix: bigbluebutton:webhooks:out:hook
+    hooks: bigbluebutton:webhooks:out:hooks
+    mappings: bigbluebutton:webhooks:proc:mappings
+    mappingPrefix: bigbluebutton:webhooks:proc:mapping
+    userMaps: bigbluebutton:webhooks:proc:userMaps
+    userMapPrefix: bigbluebutton:webhooks:proc:userMap
+
+# Basic module config entry template:
+#   key: <relative file path to app root if drop-in or module name if npm/github>,
+#     enabled: true|false (optional, default: true)
+#     type: in|out|db,
+#     config: <module-specific config> (optional)
+#
+modules:
+  ../db/redis/index.js:
+    enabled: true
+    type: db
+    config:
+      host: 127.0.0.1
+      port: 6379
+  ../in/redis/index.js:
+    enabled: true
+    type: in
+    config:
+      redis:
+        host: 127.0.0.1
+        port: 6379
+        #password: foobar
+        inboundChannels:
+          - from-akka-apps-redis-channel
+          - from-bbb-web-redis-channel
+          - from-akka-apps-chat-redis-channel
+          - from-akka-apps-pres-redis-channel
+          - bigbluebutton:from-bbb-apps:meeting
+          - bigbluebutton:from-bbb-apps:users
+          - bigbluebutton:from-rap
+  ../out/webhooks/index.js:
+    enabled: true
+    type: out
+    config:
+      api:
+        bind: 127.0.0.1
+        port: 3005
+        # Supported checksum generation algorithms for BBB API calls
+        # This should mirror the supportedChecksumAlgorithms configuration
+        # in bbb-web.properties
+        supportedChecksumAlgorithms:
+          - sha1
+          - sha256
+          - sha384
+          - sha512
+      queue:
+        enabled: false
+        maxSize: 10000
+        concurrency: 1
+      # Defines the algorithm to be used when generating checksums for
+      # callback POST requests. One of: sha1, sha256, sha384 or sha512
+      # Default: sha1
+      hookChecksumAlgorithm: sha1
+      # Events to be included on the callback POST request. If not set,
+      # all events will that aren't excluded will be included.
+      includeEvents: []
+      # Events to be excluded on the callback POST request.
+      excludeEvents: []
+      # IP where permanent hook will post data (more than 1 URL means more than 1 permanent hook)
+      permanentURLs: []
+      # How many messages will be enqueued to be processed at the same time
+      queueSize: 10000
+      # If set to higher than 1, will send events on the format:
+      # "event=[{event1},{event2}],timestamp=000" or "[{event1},{event2}]" (based on using auth2_0 or not)
+      # when there are more than 1 event on the queue at the moment of processing the queue.
+      multiEvent: 1
+      # Retry intervals for failed attempts for perform callback calls.
+      # In ms. Totals to around 5min.
+      retryIntervals:
+        - 100
+        - 500
+        - 1000
+        - 2000
+        - 4000
+        - 8000
+        - 10000
+        - 30000
+        - 60000
+        - 60000
+        - 60000
+        - 60000
+      # Reset permanent interval when exceeding maximum attemps (ms)
+      permanentIntervalReset: 60000
+      # Hook's request module timeout for socket conn establishment and/or responses (ms)
+      requestTimeout: 5000
+      retry:
+        attempts: 12
+        initialInterval: 1
+        increaseFactor: 2
+  ../out/xapi/index.js:
+    enabled: false
+    type: out
+    config:
+      lrs:
+        lrs_endpoint: https://your_lrs.endpoint
+        lrs_username: user
+        lrs_password: pass
+      uuid_namespace: 01234567-89ab-cdef-0123-456789abcdef
+      redis:
+        keys:
+          meetings: bigbluebutton:webhooks:xapi:meetings
+          meetingPrefix: bigbluebutton:webhooks:xapi:meeting
+          users: bigbluebutton:webhooks:xapi:users
+          userPrefix: bigbluebutton:webhooks:xapi:user
+          polls: bigbluebutton:webhooks:xapi:polls
+          pollPrefix: bigbluebutton:webhooks:xapi:poll

@@ -2,16 +2,60 @@ bbb:
   serverDomain: SERVER_DOMAIN
   sharedSecret: SHARED_SECRET
   auth2_0: BEARER_AUTH
-hooks:
-  permanentURLs:
-    __name: PERMANENT_HOOKS
-    __format: json
-  requestTimeout:
-    __name: REQUEST_TIMEOUT
-    __format: json
+
 redis:
   host: REDIS_HOST
   port: REDIS_PORT
-server:
-  bind: SERVER_BIND_IP
-  port: SERVER_PORT
+  password: REDIS_PASSWORD
+
+log:
+  level: LOG_LEVEL
+  stdout: LOG_TO_STDOUT
+  file: LOG_TO_FILE
+  filename: LOG_FILENAME
+
+prometheus:
+  enabled: PROM_ENABLED
+  host: PROM_HOST
+  port: PROM_PORT
+  path: PROM_PATH
+  collectDefaultMetrics: PROM_COLLECT_DEFAULT_METRICS
+
+mappings:
+  timeout: MAPPINGS_TIMEOUT
+
+modules:
+  ../db/redis/index.js:
+    config:
+      host: REDIS_HOST
+      port: REDIS_PORT
+      password: REDIS_PASSWORD
+  ../in/redis/index.js:
+    config:
+      redis:
+        host: REDIS_HOST
+        port: REDIS_PORT
+        password: REDIS_PASSWORD
+  ../out/webhooks/index.js:
+    config:
+      api:
+        bind: SERVER_BIND_IP
+        port: SERVER_PORT
+        supportedChecksumAlgorithms: SUPPORTED_CHECKSUM_ALGORITHMS
+      hookChecksumAlgorithm: HOOK_CHECKSUM_ALGORITHM
+      includeEvents:
+        __name: INCLUDE_EVENTS
+        __format: json
+      excludeEvents:
+        __name: EXCLUDE_EVENTS
+        __format: json
+      queue:
+        enabled: ENABLE_WH_QUEUE
+      permanentURLs:
+        __name: PERMANENT_HOOKS
+        __format: json
+      requestTimeout:
+        __name: REQUEST_TIMEOUT
+        __format: json
+  ../out/xapi/index.js:
+    enabled: XAPI_ENABLED

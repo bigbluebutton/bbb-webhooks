@@ -4,3 +4,9 @@
 node_modules/
 log/*
 config/default.yml
+*swn
+*swo
+*swp
+*log.*
+.env
+*.orig

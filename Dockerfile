@@ -1,18 +1,19 @@
-FROM node:18-slim
-
-ENV NODE_ENV production
+FROM node:20-alpine
 
 WORKDIR /app
 
-ADD package.json package-lock.json /app/
+COPY package.json package-lock.json ./
 
-RUN npm install \
- && npm cache clear --force
+ENV NODE_ENV production
 
-ADD . /app
+RUN npm ci --omit=dev
+
+COPY . .
 
 RUN cp config/default.example.yml config/default.yml
 
 EXPOSE 3005
 
-CMD ["node", "app.js"]
+USER node
+
+CMD [ "npm", "start" ]

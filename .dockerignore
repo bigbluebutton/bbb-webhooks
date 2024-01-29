@@ -1,1 +1,17 @@
+.dockerignore
+.env
+.git/
+.github/
+.gitignore
+.nvmrc
+*~
+*log.*
+*swn
+*swo
+*swp
+docker-compose.yaml
+Dockerfile
+example/
+extra/
 node_modules/
+test/

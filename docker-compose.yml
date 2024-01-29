@@ -1,0 +1,15 @@
+version: '3'
+services:
+  webhooks:
+    build:
+      context: ./  
+      dockerfile: Dockerfile
+    container_name: bbb-webhooks 
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - NODE_CONFIG_DIR=/etc/bigbluebutton/bbb-webhooks/:/app/config/
+    volumes:
+      - /etc/bigbluebutton/bbb-webhooks/:/etc/bigbluebutton/bbb-webhooks/
+      - /var/log/bbb-webhooks/:/var/log/bbb-webhooks/
+    network_mode: "host"
