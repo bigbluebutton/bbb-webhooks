@@ -86,6 +86,11 @@ class UserMappingCompartment extends StorageCompartmentKV {
     return (mapping != null ? mapping.payload?.externalUserID : undefined);
   }
 
+  isGuest(internalUserID) {
+    const user = this.getUser(internalUserID);
+    return user?.guest === true || user?.guest === 'true';
+  }
+
   // Initializes global methods for this model.
   initialize() {
     return this.resync();
