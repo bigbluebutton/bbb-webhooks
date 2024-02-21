@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+### v3.1.0
+
+* feat(events): add guest field to user-joined/user-left
+
 ### v3.0.0
 
 #### Changelog since v3.0.0-beta.5
