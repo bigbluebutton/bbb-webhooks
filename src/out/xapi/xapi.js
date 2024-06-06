@@ -39,10 +39,9 @@ export default class XAPI {
   }
 
   async postToLRS(statement, meeting_data) {
-    let { lrs_endpoint, lrs_username, lrs_password } = this.config.lrs;
-    if (meeting_data.lrs_endpoint !== ''){
-      lrs_endpoint = meeting_data.lrs_endpoint;
-    }
+    const lrs_username = meeting_data.lrs_username || this.config.lrs?.lrs_username;
+    const lrs_password = meeting_data.lrs_password || this.config.lrs?.lrs_password;
+    const lrs_endpoint = meeting_data.lrs_endpoint || this.config.lrs?.lrs_endpoint;
     const lrs_token = meeting_data.lrs_token;
     const headers = {
       Authorization: `Basic ${Buffer.from(
@@ -52,9 +51,7 @@ export default class XAPI {
       "X-Experience-API-Version": "1.0.0",
     };
 
-    if (lrs_token !== ''){
-      headers.Authorization = `Bearer ${lrs_token}`
-    }
+    if (lrs_token) headers.Authorization = `Bearer ${lrs_token}`
 
     const requestOptions = {
       method: "POST",
@@ -107,15 +104,32 @@ export default class XAPI {
         const lrs_payload = event.data.attributes.meeting.metadata?.["secret-lrs-payload"];
         let lrs_endpoint = '';
         let lrs_token = '';
+        let lrs_username = '';
+        let lrs_password = '';
 
         // if lrs_payload exists, decrypts with the server secret and extracts lrs_endpoint and lrs_token from it
         if (lrs_payload !== undefined){
-          const payload_text = decryptStr(lrs_payload, this.config.server.secret);
-          ({lrs_endpoint, lrs_token} = JSON.parse(payload_text));
+          try {
+            const payload_text = decryptStr(lrs_payload, this.config.server.secret);
+            ({
+              lrs_endpoint,
+              lrs_token,
+              lrs_username,
+              lrs_password,
+            } = JSON.parse(payload_text));
+          } catch (error) {
+            this.logger.error("OutXAPI.onEvent: invalid lrs_payload", {
+              error: error.stack,
+              lrs_payload
+            });
+            return reject(error);
+          }
         }
 
         meeting_data.lrs_endpoint = lrs_endpoint;
         meeting_data.lrs_token = lrs_token;
+        meeting_data.lrs_username = lrs_username;
+        meeting_data.lrs_password = lrs_password;
 
         const meeting_create_day = DateTime.fromMillis(
           meeting_data.create_time

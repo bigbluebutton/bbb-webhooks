@@ -64,14 +64,28 @@ If you set `meta_xapi-enabled` to false, no xAPI events will be generated or sen
 
 ### meta_secret-lrs-payload
 - **Description**: This parameter allows you to specify the credentials and endpoint of the Learning Record Store (LRS) where the xAPI events will be sent. The payload is a Base64-encoded string representing a JSON object encrypted (AES 256/PBKDF2) using the **server secret** as the **passphrase**.
-- **Value Format**: Base64-encoded JSON object encrypted with AES 256/PBKDF2 encryption
-- **JSON Payload Structure**:
-```json
-{
-  "lrs_endpoint": "https://lrs1.example.com",
-  "lrs_token": "AAF32423SDF5345"
-}
-```
+There are two supported formats for the payload:
+
+- **LRS Token (Bearer authentication)**
+  - **Value Format**: Base64-encoded JSON object encrypted with AES 256/PBKDF2 encryption
+  - **JSON Payload Structure**:
+    ```json
+    {
+      "lrs_endpoint": "https://lrs1.example.com",
+      "lrs_token": "AAF32423SDF5345"
+    }
+    ```
+- **LRS Username/Password (Basic authentication)**
+  - **Value Format**: Base64-encoded JSON object encrypted with AES 256/PBKDF2 encryption
+  - **JSON Payload Structure**:
+    ```json
+    {
+      "lrs_endpoint": "https://lrs1.example.com",
+      "lrs_username": "user",
+      "lrs_password": "pass"
+    }
+    ```
+
 - **Encrypting the Payload**: The Payload should be encrypted with the server secret using the following bash command (provided the lrs credential are in the `lrs.conf` file and server secret is `bab3fd92bcd7d464`):
 ```bash
 cat ./lrs.conf | openssl aes-256-cbc -pass "pass:bab3fd92bcd7d464" -pbkdf2 -a -A
