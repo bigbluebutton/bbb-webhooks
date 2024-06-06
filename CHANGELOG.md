@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+### UNRELEASED
+
+* build: express@4.19.2
+
 ### v3.1.0
 
 * feat(events): add guest field to user-joined/user-left
