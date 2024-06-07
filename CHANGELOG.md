@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-### UNRELEASED
+### v3.2.0-beta.0
 
 * feat(xapi): add support for Basic auth via meta_secret-lrs-payload
 * fix: remove cache-to from image push to make dockerhub images usable
