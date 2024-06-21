@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-### UNRELEASED
+### v3.2.0-beta.1
 
 * fix(xapi): LRS credentials wouldn't persist in the database
 * build: nodemon@3.1.4
