@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+### UNRELEASED
+
+* build: nodemon@3.1.4
+
 ### v3.2.0-beta.0
 
 * feat(xapi): add support for Basic auth via meta_secret-lrs-payload
