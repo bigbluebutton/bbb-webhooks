@@ -39,10 +39,22 @@ export default class XAPI {
   }
 
   async postToLRS(statement, meeting_data) {
-    const lrs_username = meeting_data.lrs_username || this.config.lrs?.lrs_username;
-    const lrs_password = meeting_data.lrs_password || this.config.lrs?.lrs_password;
-    const lrs_endpoint = meeting_data.lrs_endpoint || this.config.lrs?.lrs_endpoint;
-    const lrs_token = meeting_data.lrs_token;
+    let decrypted_lrs_payload = null;
+    if (meeting_data.lrs_payload) {
+      try {
+        decrypted_lrs_payload = this._decryptLrsPayload(meeting_data.lrs_payload);
+      } catch (error) {
+        this.logger.warn("OutXAPI.postToLRS: invalid lrs_payload found on db", {
+          lrs_payload: meeting_data.lrs_payload,
+        });
+        throw new Error('invalid lrs_payload');
+      }
+    }
+
+    const lrs_username = decrypted_lrs_payload?.lrs_username || this.config.lrs?.lrs_username;
+    const lrs_password = decrypted_lrs_payload?.lrs_password || this.config.lrs?.lrs_password;
+    const lrs_endpoint = decrypted_lrs_payload?.lrs_endpoint || this.config.lrs?.lrs_endpoint;
+    const lrs_token = decrypted_lrs_payload?.lrs_token;
     const headers = {
       Authorization: `Basic ${Buffer.from(
         lrs_username + ":" + lrs_password
@@ -76,6 +88,18 @@ export default class XAPI {
     }
   }
 
+  _decryptLrsPayload(lrs_payload) {
+    // Decrypt the lrs_payload with the server secret to check if it is valid
+    const payload_text = decryptStr(lrs_payload, this.config.server.secret);
+    const parsedPayload = JSON.parse(payload_text);
+
+    if (!parsedPayload.lrs_token && (!parsedPayload.lrs_username || !parsedPayload.lrs_password)) {
+      throw new Error('invalid lrs_payload, mssing token or username@password');
+    }
+
+    return parsedPayload;
+  }
+
   async onEvent(event) {
     const eventId = event.data.id;
 
@@ -102,21 +126,13 @@ export default class XAPI {
         meeting_data.create_end_actor_name = event.data.attributes.meeting.metadata?.["xapi-create-end-actor-name"] || "<unknown>";
 
         const lrs_payload = event.data.attributes.meeting.metadata?.["secret-lrs-payload"];
-        let lrs_endpoint = '';
-        let lrs_token = '';
-        let lrs_username = '';
-        let lrs_password = '';
-
         // if lrs_payload exists, decrypts with the server secret and extracts lrs_endpoint and lrs_token from it
-        if (lrs_payload !== undefined){
+        if (lrs_payload !== undefined) {
           try {
-            const payload_text = decryptStr(lrs_payload, this.config.server.secret);
-            ({
-              lrs_endpoint,
-              lrs_token,
-              lrs_username,
-              lrs_password,
-            } = JSON.parse(payload_text));
+            // Decrypt the lrs_payload with the server secret to check if it is valid
+            this._decryptLrsPayload(lrs_payload);
+            // Store it encrypted
+            meeting_data.lrs_payload = lrs_payload;
           } catch (error) {
             this.logger.error("OutXAPI.onEvent: invalid lrs_payload", {
               error: error.stack,
@@ -125,11 +141,6 @@ export default class XAPI {
             return reject(error);
           }
         }
-
-        meeting_data.lrs_endpoint = lrs_endpoint;
-        meeting_data.lrs_token = lrs_token;
-        meeting_data.lrs_username = lrs_username;
-        meeting_data.lrs_password = lrs_password;
 
         const meeting_create_day = DateTime.fromMillis(
           meeting_data.create_time
@@ -290,7 +301,11 @@ export default class XAPI {
         }
       }
       if (XAPIStatement !== null && meeting_data.xapi_enabled === 'true') {
-        await this.postToLRS(XAPIStatement, meeting_data);
+        try {
+          await this.postToLRS(XAPIStatement, meeting_data);
+        } catch (error) {
+          return reject(error);
+        }
       }
     });
   }
