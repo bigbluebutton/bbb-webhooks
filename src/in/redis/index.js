@@ -103,6 +103,8 @@ export default class InRedis {
     }
 
     this.setCollector(InRedis._defaultCollector);
+    this.loaded = false;
+    this.logger.info('InRedis unloaded');
   }
 
   setContext (context) {
@@ -112,7 +114,7 @@ export default class InRedis {
     return context;
   }
 
-  async setCollector (event) {
-    this._collector = event;
+  async setCollector (collector) {
+    this._collector = collector;
   }
 }

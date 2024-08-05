@@ -33,10 +33,6 @@ class OutWebHooks {
    */
   static type = "out";
 
-  static _defaultCollector () {
-    throw new Error('Collector not set');
-  }
-
   /**
    * constructor.
    * @param {Context} context - The main application's context.
@@ -117,8 +113,7 @@ class OutWebHooks {
   }
 
   /**
-   * unload - Unloads the out-webhooks module by stopping the API server,
-   *          and re-setting the collector to the default one.
+   * unload - Unloads the out-webhooks module by stopping the API server
    * @async
    * @returns {Promise<void>}
    */
@@ -127,8 +122,9 @@ class OutWebHooks {
       this.webhooks = null;
     }
 
-    this.setCollector(OutWebHooks._defaultCollector);
+    await this.api.stop();
     this.loaded = false;
+    this.logger.info('OutWebHooks unloaded');
   }
 
   /**

@@ -146,18 +146,25 @@ export default class ModuleManager {
     });
 
     process.on('uncaughtException', async (error) => {
-      this.logger.error("CRITICAL: uncaught exception, shutdown", { error: error.stack });
-      await this.stopModules();
-      if (process.env.NODE_ENV !== 'production') process.exit(1);
+      this.logger.error("CRITICAL: uncaught exception, shutdown", error);
+
+      if (process.env.NODE_ENV !== 'production') {
+        await this.stopModules();
+        process.exit(1);
+      }
     });
 
     // Added this listener to identify unhandled promises, but we should start making
     // sense of those as we find them
-    process.on('unhandledRejection', (reason) => {
+    process.on('unhandledRejection', async (reason) => {
       this.logger.error("CRITICAL: Unhandled promise rejection", {
         reason: reason.toString(), stack: reason.stack,
       });
-      if (process.env.NODE_ENV !== 'production') process.exit(1);
+
+      if (process.env.NODE_ENV !== 'production') {
+        await this.stopModules();
+        process.exit(1);
+      }
     });
 
     return {
@@ -184,16 +191,22 @@ export default class ModuleManager {
     });
   }
 
-  async stopModules () {
+  stopModules () {
     this.runningState = "STOPPING";
 
-    for (var proc in this.modules) {
-      if (Object.prototype.hasOwnProperty.call(this.modules, proc)) {
-        let procObj = this.modules[proc];
-        if (typeof procObj.unload === 'function') procObj.unload();
-      }
-    }
-
-    this.runningState = "STOPPED";
+    return Promise.allSettled(Object.values(this.modules).map((module) => {
+      return module.unload();
+    })).then((results) => {
+      // Log any errors
+      results.forEach((result) => {
+        if (result.status === "rejected") {
+          this.logger.error("CRITICAL: failed to stop module", result.reason);
+        }
+      });
+    }).catch((error) => {
+      this.logger.error("CRITICAL: failed to stop modules", error);
+    }).finally(() => {
+      this.runningState = "STOPPED";
+    });
   }
 }

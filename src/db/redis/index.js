@@ -60,6 +60,7 @@ export default class RedisDB {
     }
 
     this.loaded = false;
+    this.logger.info('RedisDB unloaded');
   }
 
   setContext(context) {

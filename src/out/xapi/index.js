@@ -13,10 +13,6 @@ import { createClient } from 'redis';
 export default class OutXAPI {
   static type = "out";
 
-  static _defaultCollector() {
-    throw new Error('Collector not set');
-  }
-
   constructor(context, config = {}) {
     this.type = OutXAPI.type;
     this.config = config;
@@ -79,8 +75,8 @@ export default class OutXAPI {
       this.redisClient = null;
     }
 
-    this.setCollector(OutXAPI._defaultCollector);
     this.loaded = false;
+    this.logger.info('OutXAPI unloaded');
   }
 
   setContext(context) {
