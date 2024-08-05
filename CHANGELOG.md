@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+### UNRELEASED
+
+* fix: catch all HTTPServer errors in the prom module
+
 ### v3.2.0
 
 * feat(xapi): add support for Basic auth via meta_secret-lrs-payload

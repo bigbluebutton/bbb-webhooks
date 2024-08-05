@@ -49,18 +49,19 @@ class HttpServer {
    * @param {Error} error - error object
    */
   _handleError (error) {
-    if (error.code === 'EADDRINUSE') {
-      this.logger.warn("EADDRINUSE, won't spawn HTTP server", {
-        host: this.host, port: this.port,
-      });
-      this.server.close();
-    } else if (error.code === 'ECONNRESET') {
-      this.logger.warn("HTTPServer: ECONNRESET ", { errorMessage: error.message });
-    } else {
-      this.logger.error("Returned error", error);
+    switch (error.code) {
+      case 'EADDRINUSE':
+        this.logger.warn("EADDRINUSE, won't spawn HTTP server", {
+          host: this.host, port: this.port,
+        });
+        this.server.close();
+        break;
+      case 'ECONNRESET':
+        this.logger.warn("HTTPServer: ECONNRESET ", { errorMessage: error.message });
+        break;
+      default:
+        this.logger.error("Unexpected HTTP server error", error);
     }
-
-    throw error;
   }
 
   /**
