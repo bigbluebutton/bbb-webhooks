@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-### UNRELEASED
+### v3.2.1
 
 * fix: catch all HTTPServer errors in the prom module
 * fix: app stalling due to borked shutdown procedure
