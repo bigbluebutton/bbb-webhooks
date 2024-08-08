@@ -14,6 +14,8 @@ export default class WebhooksEvent {
     "meeting-screenshare-started",
     "meeting-screenshare-stopped",
     "meeting-presentation-changed",
+    "presentation-uploaded",
+    "presentation-annotated-pdf-ready",
     "user-joined",
     "user-left",
     "user-audio-voice-enabled",
@@ -58,6 +60,10 @@ export default class WebhooksEvent {
       "ScreenshareRtmpBroadcastStoppedEvtMsg",
       "SetCurrentPresentationEvtMsg",
       "RecordingStatusChangedEvtMsg",
+    ],
+    PRESENTATION_EVENTS: [
+      "PresentationConversionCompletedEvtMsg",
+      "NewPresFileAvailableEvtMsg",
     ],
     USER_EVENTS: [
       "UserJoinedMeetingEvtMsg",
@@ -120,6 +126,8 @@ export default class WebhooksEvent {
     if (this.inputEvent) {
       if (this.mappedEvent(this.inputEvent, WebhooksEvent.RAW.MEETING_EVENTS)) {
         this.meetingTemplate(this.inputEvent);
+      } else if (this.mappedEvent(this.inputEvent, WebhooksEvent.RAW.PRESENTATION_EVENTS)) {
+        this.presentationTemplate(this.inputEvent);
       } else if (this.mappedEvent(this.inputEvent, WebhooksEvent.RAW.USER_EVENTS)) {
         this.userTemplate(this.inputEvent);
       } else if (this.mappedEvent(this.inputEvent, WebhooksEvent.RAW.CHAT_EVENTS)) {
@@ -154,6 +162,10 @@ export default class WebhooksEvent {
   mappedEvent(messageObj, events) {
     return events.some(event => {
       if (messageObj?.header?.name === event) {
+        return true;
+      }
+
+      if (messageObj?.core?.header?.name === event) {
         return true;
       }
 
@@ -365,6 +377,40 @@ export default class WebhooksEvent {
     };
   }
 
+  presentationTemplate(messageObj) {
+    const meetingId = messageObj.core.header.meetingId;
+    const userId = messageObj.core.header.userId;
+    const extId = UserMapping.get().getExternalUserID(userId) || "";
+    const data = messageObj.core.body;
+
+    this.outputEvent = {
+      data: {
+        "type": "event",
+        "id": this.mapInternalMessage(messageObj),
+        "attributes": {
+          "meeting": {
+            "internal-meeting-id": meetingId,
+            "external-meeting-id": IDMapping.get().getExternalMeetingID(meetingId)
+          },
+          "user":{
+            "internal-user-id": userId,
+            "external-user-id": extId,
+          }
+        },
+        "event": {
+          "ts": Date.now()
+        }
+      }
+    };
+
+    if (this.outputEvent.data.id === "presentation-uploaded") {
+      this.outputEvent.data.attributes["pres-id"] = data.presentation.id;
+      this.outputEvent.data.attributes["name"] = data.presentation.name;
+    } else if (this.outputEvent.data.id === "presentation-annotated-pdf-ready") {
+      this.outputEvent.data.attributes["pres-id"] = data.presId;
+      this.outputEvent.data.attributes["annotated-file-uri"] = data.annotatedFileURI;
+    }
+  }
   rapTemplate(messageObj) {
     const data = messageObj.core.body;
     this.outputEvent = {
@@ -524,9 +570,7 @@ export default class WebhooksEvent {
   }
 
   mapInternalMessage(message) {
-    const name = message?.envelope?.name || message?.header?.name;
-
-    const mappedMsg = (() => { switch (name) {
+    const mappedMsg = (name) => { switch (name) {
       case "MeetingCreatedEvtMsg": return "meeting-created";
       case "MeetingDestroyedEvtMsg": return "meeting-ended";
       case "RecordingStatusChangedEvtMsg": return this.handleRecordingStatusChanged(message);
@@ -552,6 +596,8 @@ export default class WebhooksEvent {
       case "PadContentEvtMsg": return "pad-content";
       case "PollStartedEvtMsg": return "poll-started";
       case "UserRespondedToPollRespMsg": return "poll-responded";
+      case "PresentationConversionCompletedEvtMsg": return "presentation-uploaded";
+      case "NewPresFileAvailableEvtMsg": return "presentation-annotated-pdf-ready";
       // RAP
       case "archive_started": return "rap-archive-started";
       case "archive_ended": return "rap-archive-ended";
@@ -570,8 +616,8 @@ export default class WebhooksEvent {
       case "deleted": return "rap-deleted";
       case "post_publish_started": return "rap-post-publish-started";
       case "post_publish_ended": return "rap-post-publish-ended";
-    } })();
+    } };
 
-    return mappedMsg;
+    return mappedMsg(message?.envelope?.name) || mappedMsg(message?.header?.name) || mappedMsg(message?.core?.header?.name);
   }
 }
