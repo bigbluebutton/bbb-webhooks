@@ -14,6 +14,7 @@ export default class WebhooksEvent {
     "meeting-screenshare-started",
     "meeting-screenshare-stopped",
     "meeting-presentation-changed",
+    "presentation-uploaded",
     "presentation-annotated-pdf-ready",
     "user-joined",
     "user-left",
@@ -61,6 +62,7 @@ export default class WebhooksEvent {
       "RecordingStatusChangedEvtMsg",
     ],
     PRESENTATION_EVENTS: [
+      "PresentationConversionCompletedEvtMsg",
       "NewPresFileAvailableEvtMsg",
     ],
     USER_EVENTS: [
@@ -380,6 +382,7 @@ export default class WebhooksEvent {
     const userId = messageObj.core.header.userId;
     const extId = UserMapping.get().getExternalUserID(userId) || "";
     const data = messageObj.core.body;
+
     this.outputEvent = {
       data: {
         "type": "event",
@@ -392,15 +395,21 @@ export default class WebhooksEvent {
           "user":{
             "internal-user-id": userId,
             "external-user-id": extId,
-          },
-          "annotated-file-uri": data.annotatedFileURI,
-          "pres-id": data.presId,
+          }
         },
         "event": {
           "ts": Date.now()
         }
       }
     };
+
+    if (this.outputEvent.data.id === "presentation-uploaded") {
+      this.outputEvent.data.attributes["pres-id"] = data.presentation.id;
+      this.outputEvent.data.attributes["name"] = data.presentation.name;
+    } else if (this.outputEvent.data.id === "presentation-annotated-pdf-ready") {
+      this.outputEvent.data.attributes["pres-id"] = data.presId;
+      this.outputEvent.data.attributes["annotated-file-uri"] = data.annotatedFileURI;
+    }
   }
   rapTemplate(messageObj) {
     const data = messageObj.core.body;
@@ -587,6 +596,7 @@ export default class WebhooksEvent {
       case "PadContentEvtMsg": return "pad-content";
       case "PollStartedEvtMsg": return "poll-started";
       case "UserRespondedToPollRespMsg": return "poll-responded";
+      case "PresentationConversionCompletedEvtMsg": return "presentation-uploaded";
       case "NewPresFileAvailableEvtMsg": return "presentation-annotated-pdf-ready";
       // RAP
       case "archive_started": return "rap-archive-started";
