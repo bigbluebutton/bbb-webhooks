@@ -117,7 +117,7 @@ export default function suite({
   });
 
   describe('GET /hooks/create getRaw hook', () => {
-    after( (done) => {
+    after((done) => {
       const hooks = Hook.get().getAllGlobalHooks();
       Hook.get().removeSubscription(hooks[hooks.length-1].id)
         .then(() => { done(); })
@@ -141,6 +141,21 @@ export default function suite({
             done();
           } else {
             done(new Error("getRaw hook was not created"))
+          }
+        })
+    })
+  });
+
+  describe('GET /hooks/create without checksum', () => {
+    it('should return 200 response with checksumError key', (done) => {
+      request(Helpers.url)
+        .get(Helpers.createUrl)
+        .expect('Content-Type', /text\/xml/)
+        .expect(200, (err, res) => {
+          if (res.text.includes('checksumError')) {
+            done();
+          } else {
+            done(new Error("Incorrect checksumError response: " + res.text));
           }
         })
     })

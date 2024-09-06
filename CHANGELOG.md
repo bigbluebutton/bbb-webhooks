@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+### UNRELEASED
+
+* fix: handle missing checksum in API requests
+
 ### v3.2.1
 
 * fix: catch all HTTPServer errors in the prom module

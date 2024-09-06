@@ -131,6 +131,9 @@ const checksumAPI = (fullUrl, salt, algorithm) => {
 const isUrlChecksumValid = (urlStr, secret, supportedAlgorithms) => {
   const urlObj = url.parse(urlStr, true);
   const checksum = urlObj.query["checksum"];
+
+  if (!checksum || typeof checksum !== "string") return false;
+
   const algorithm = getChecksumAlgorithmFromLength(checksum.length);
 
   if (!isChecksumAlgorithmSupported(algorithm, supportedAlgorithms)) {
