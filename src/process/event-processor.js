@@ -61,6 +61,17 @@ export default class EventProcessor {
     return parsedEvent;
   }
 
+  _shouldReportActivity(event) {
+    const ignoreList = [
+      'meeting-ended',
+    ];
+
+    // If the event is in the ignore list, we don't want to report activity.
+    // Generally speaking, EOL events should not be considered for activity tracking
+    // as mappings will be deleted anyway.
+    return event?.data?.id && !ignoreList.includes(event.data.id);
+  }
+
   // TODO move this to an event factory
   // Spoofs a user left event for a given user when a meeting ends (so that the user
   // is removed from the user mapping AND the user left event is sent to output modules).
@@ -182,7 +193,10 @@ export default class EventProcessor {
       if (!Utils.isEmpty(outputEvent)) {
         Logger.trace('raw event succesfully parsed', { rawEvent });
         const internalMeetingId = outputEvent.data.attributes.meeting["internal-meeting-id"];
-        IDMapping.get().reportActivity(internalMeetingId);
+
+        if (this._shouldReportActivity(outputEvent)) {
+          IDMapping.get().reportActivity(internalMeetingId);
+        }
 
         // Any kind of retrocompatibility logic, output event post-processing,
         // data storage et al. should be done here.

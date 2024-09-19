@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 * fix: handle missing checksum in API requests
 * fix: cleanup corrupted Redis mappings
+* fix: stale meeting mappings due to incorrect inactivity report
 * build: express@4.21.0
 * build: sinon@19.0.2
 
