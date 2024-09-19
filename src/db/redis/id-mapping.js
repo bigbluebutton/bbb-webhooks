@@ -84,7 +84,9 @@ class IDMappingCompartment extends StorageCompartmentKV {
     const toRemove = all.filter(mapping => mapping?.payload.lastActivity < (now - config.get("mappings.timeout")));
 
     if (toRemove && toRemove.length > 0) {
-      this.logger.info(`expiring the mappings: ${toRemove.map(map => map.print())}`);
+      this.logger.info('expiring mappings', {
+        mappings: toRemove.map(map => map.print()),
+      });
       toRemove.forEach(mapping => {
         UserMapping.get().removeMappingWithMeetingId(mapping.payload.internalMeetingID).catch((error) => {
           this.logger.error(`error removing user mapping for ${mapping.payload.internalMeetingID}`, error);

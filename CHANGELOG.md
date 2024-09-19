@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ### UNRELEASED
 
 * fix: handle missing checksum in API requests
+* fix: cleanup corrupted Redis mappings
 * build: express@4.21.0
 * build: sinon@19.0.2
 

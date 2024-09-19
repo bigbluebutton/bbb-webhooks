@@ -275,12 +275,14 @@ class StorageCompartmentKV {
   async resync() {
     try {
       const mappings = await this.redisClient.sMembers(this.setId);
-
-      this.logger.info(`starting resync, mappings registered: [${mappings}]`);
+      this.logger.info(`starting resync for setId ${this.setId}`, {
+        mappings,
+      });
       if (mappings != null && mappings.length > 0) {
         return Promise.all(mappings.map(async (id) => {
+          const mappingId = `${this.prefix}:${id}`;
           try {
-            const data = await this.redisClient.hGetAll(this.prefix + ":" + id);
+            const data = await this.redisClient.hGetAll(mappingId);
             const { id: rId, ...payload } = this.deserialize(data);
 
             if (payload && Object.keys(payload).length > 0) {
@@ -289,11 +291,26 @@ class StorageCompartmentKV {
                 alias: payload[this.aliasField],
                 itemClass: this.itemClass
               });
+            } else {
+              throw new Error('no payload found');
             }
 
             return Promise.resolve();
           } catch (error) {
-            this.logger.error('error getting information for a mapping from redis', error);
+            this.logger.error('error getting information for a mapping from redis', {
+              setId: this.setId,
+              mappingId,
+              errorMessage: error?.message,
+              errorStack: error?.stack,
+            });
+            // Destroy the mapping if we can't get the data.
+            this.redisClient.sRem(this.setId, id).catch((error) => {
+              this.logger.error('error removing mapping ID from the list of mappings', error);
+            });
+            this.redisClient.del(mappingId).catch((error) => {
+              this.logger.error('error removing mapping from redis', error);
+            });
+
             return Promise.resolve();
           }
         })).then(() => {
