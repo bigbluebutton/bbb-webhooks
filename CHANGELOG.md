@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-### UNRELEASED
+### v3.2.2
 
 * fix: handle missing checksum in API requests
 * fix: cleanup corrupted Redis mappings
