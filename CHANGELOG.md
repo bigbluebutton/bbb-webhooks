@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ### UNRELEASED
 
 * fix: handle missing checksum in API requests
+* build: express@4.21.0
 
 ### v3.2.1
 
