@@ -25,6 +25,8 @@ const METRIC_NAMES = {
   MODULE_STATUS: `${PREFIX}module_status`,
   EVENT_PROCESS_FAILURES: `${PREFIX}event_process_failures`,
   EVENT_DISPATCH_FAILURES: `${PREFIX}event_dispatch_failures`,
+  MEETING_MAPPINGS: `${PREFIX}meeting_mappings`,
+  USER_MAPPINGS: `${PREFIX}user_mappings`,
 }
 
 let METRICS = {}
@@ -78,6 +80,16 @@ const buildDefaultMetrics = () => {
         name: METRIC_NAMES.EVENT_DISPATCH_FAILURES,
         help: 'Number of event dispatch failures',
         labelNames: ['outputEventId', 'module'],
+      }),
+
+      [METRIC_NAMES.MEETING_MAPPINGS]: new Gauge({
+        name: METRIC_NAMES.MEETING_MAPPINGS,
+        help: 'Number of meeting mappings saved in the database',
+      }),
+
+      [METRIC_NAMES.USER_MAPPINGS]: new Gauge({
+        name: METRIC_NAMES.USER_MAPPINGS,
+        help: 'Number of user mappings saved in the database',
       }),
     }
   }

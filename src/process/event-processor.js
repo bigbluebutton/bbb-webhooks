@@ -21,6 +21,42 @@ export default class EventProcessor {
     this.outputs = outputs;
 
     this._exporter = Metrics.agent;
+    this._setMetricsCollectors();
+  }
+
+  /**
+   * _setMetricsCollectors - Sets the metrics collectors for the event processor.
+   * @private
+   */
+  _setMetricsCollectors() {
+    const collectIDMappings = async () => {
+      try {
+        const mappings = await IDMapping.get().getAll();
+        return mappings?.length || 0;
+      } catch (error) {
+        Logger.error('error getting ID mappings', error);
+        return 0;
+      }
+    }
+
+    const collectUserMappings = async () => {
+      try {
+        const mappings = await UserMapping.get().getAll();
+        return mappings?.length || 0;
+      } catch (error) {
+        Logger.error('error getting user mappings', error);
+        return 0;
+      }
+    }
+
+    this._exporter.setCollectorWithGenerator(
+      Metrics.METRIC_NAMES.MEETING_MAPPINGS,
+      collectIDMappings,
+    );
+    this._exporter.setCollectorWithGenerator(
+      Metrics.METRIC_NAMES.USER_MAPPINGS,
+      collectUserMappings,
+    );
   }
 
   _trackModuleEvents() {

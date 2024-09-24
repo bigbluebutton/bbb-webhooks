@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ### UNRELEASED
 
+* feat(metrics): add gauges for meeting and user Redis mappings
 * fix(metrics): properly handle Prometheus collection failures
 * fix(metrics): handle promises in setCollectorWithGenerator
 
