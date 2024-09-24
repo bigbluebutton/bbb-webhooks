@@ -171,8 +171,9 @@ class PrometheusScrapeAgent {
       /**
        * metric.collect.
        */
-      metric.collect = () => {
-        metric.set(generator());
+      metric.collect = async () => {
+        const value = await generator();
+        metric.set(value);
       };
     }
   }

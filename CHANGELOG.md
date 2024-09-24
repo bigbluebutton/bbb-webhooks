@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ### UNRELEASED
 
 * fix(metrics): properly handle Prometheus collection failures
+* fix(metrics): handle promises in setCollectorWithGenerator
 
 ### v3.2.2
 
