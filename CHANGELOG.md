@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+### UNRELEASED
+
+* fix(metrics): properly handle Prometheus collection failures
+
 ### v3.2.2
 
 * fix: handle missing checksum in API requests
