@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-### UNRELEASED
+### v3.3.0
 
 * feat(metrics): add gauges for meeting and user Redis mappings
 * fix(metrics): properly handle Prometheus collection failures

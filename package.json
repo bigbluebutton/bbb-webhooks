@@ -1,6 +1,6 @@
 {
   "name": "bbb-webhooks",
-  "version": "3.2.2",
+  "version": "3.3.0",
   "description": "A BigBlueButton mudule for events WebHooks",
   "type": "module",
   "scripts": {
