@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+### UNRELEASED
+
+* build: express@4.21.1
+
 ### v3.3.0
 
 * feat(metrics): add gauges for meeting and user Redis mappings
