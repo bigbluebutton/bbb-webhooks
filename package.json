@@ -20,7 +20,7 @@
   "dependencies": {
     "bullmq": "4.17.0",
     "config": "^3.3.7",
-    "express": "^4.21.1",
+    "express": "^4.21.2",
     "js-yaml": "^4.1.0",
     "luxon": "^3.4.3",
     "node-fetch": "^3.3.2",
