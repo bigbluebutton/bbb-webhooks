@@ -285,7 +285,9 @@ export default class WebhooksEvent {
             "name": msgBody.name,
             "role": msgBody.role,
             "presenter": msgBody.presenter,
-            "userdata": msgBody.userdata,
+            // All variations of user data nomenclature in UserJoinedMeetingEvtMsg
+            // as they keep changing the field name
+            "userdata": msgBody?.userdata || msgBody?.userMetadata || msgBody?.userCustomData,
             "stream": msgBody.stream
           }
         },

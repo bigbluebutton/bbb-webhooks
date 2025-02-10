@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ### UNRELEASED
 
+* fix: missing userdata in user-joined event (BBB 2.7 and 3.0)
 * build: express@4.21.1
 
 ### v3.3.0
