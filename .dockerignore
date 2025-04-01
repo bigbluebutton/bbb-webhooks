@@ -10,6 +10,7 @@
 *swo
 *swp
 docker-compose.yaml
+docker-compose.yml
 Dockerfile
 example/
 extra/
