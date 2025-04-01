@@ -45,30 +45,27 @@ jobs:
 
       - uses: rlespinasse/github-slug-action@v4.4.1
 
-      - name: Calculate tag
-        id: tag
-        run: |
-          if [ "$GITHUB_EVENT_NAME" == "pull_request" ]; then
-            TAG="pr-${{ github.event.number }}"
-          else
-            TAG=${{ github.ref_name }}
-          fi
-          echo "IMAGE=${{ vars.REGISTRY_URI }}/${{ vars.REGISTRY_ORGANIZATION }}/bbb-webhooks:$TAG" >> $GITHUB_OUTPUT
-
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
-          images: ${{ steps.tag.outputs.IMAGE }}
+          images: ${{ vars.REGISTRY_URI }}/${{ vars.REGISTRY_ORGANIZATION }}/bbb-webhooks
+          tags: |
+            type=ref,event=pr
+            type=ref,event=tag
+            type=semver,pattern={{major}}.{{minor}}.{{patch}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=semver,pattern=latest
 
       - name: Build and push image
         uses: docker/build-push-action@v5
         with:
           push: true
-          tags: ${{ steps.tag.outputs.IMAGE }}
+          tags: ${{ steps.meta.outputs.tags }}
           context: .
           platforms: linux/amd64
-          cache-from: type=registry,ref=${{ steps.tag.outputs.IMAGE }}
+          cache-from: type=registry,ref=${{ steps.meta.outputs.tags }}
           labels: |
             ${{ steps.meta.outputs.labels }}
 
