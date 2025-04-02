@@ -59,7 +59,7 @@ jobs:
             type=semver,pattern=latest
 
       - name: Build and push image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
@@ -78,13 +78,13 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: "Updated Docker image pushed to `${{ steps.tag.outputs.IMAGE }}`"
+              body: "Updated Docker image pushed to `${{ vars.REGISTRY_URI }}/${{ vars.REGISTRY_ORGANIZATION }}/bbb-webhooks/pr-${{ github.event.number }}`"
             })
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ steps.tag.outputs.IMAGE }}
+          image-ref: ${{ vars.REGISTRY_URI }}/${{ vars.REGISTRY_ORGANIZATION }}/bbb-webhooks/pr-${{ github.event.number }}
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
