@@ -95,7 +95,7 @@ class HookCompartment extends StorageCompartmentKV {
   }) {
     const payload = this._buildPayload({
       callbackURL,
-      externalMeetingID: meetingID,
+      meetingID,
       eventID: eventID?.toLowerCase().split(','),
       permanent,
       getRaw,
@@ -213,3 +213,4 @@ export default {
   init,
   get,
 }
+

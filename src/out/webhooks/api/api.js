@@ -192,7 +192,7 @@ export default class API {
         msg += "<hook>";
         msg +=   `<hookID>${hook.id}</hookID>`;
         msg +=   `<callbackURL><![CDATA[${callbackURL}]]></callbackURL>`;
-        if (!API.storage.get().isGlobal(hook)) { msg +=   `<meetingID><![CDATA[${externalMeetingID}]]></meetingID>`; }
+        if (!API.storage.get().isGlobal(hook.payload)) { msg +=   `<meetingID><![CDATA[${externalMeetingID}]]></meetingID>`; }
         if (eventID != null) { msg +=   `<eventID>${eventID}</eventID>`; }
         msg +=   `<permanentHook>${permanent}</permanentHook>`;
         msg +=   `<rawData>${getRaw}</rawData>`;
