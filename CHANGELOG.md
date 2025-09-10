@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 * fix(webhooks): incorrectly sorted hooks in API responses
 * fix: internal/external-meeting-id missing from some events
 * test: add regression test for webhook checksum uniqueness
+* test: add regression tests for scoped hooks
 * build: address npm audit issues
 * build: bullmq@v4.18.3
 
