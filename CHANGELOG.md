@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ### UNRELEASED
 
 * fix(webhooks): guarantee checksum uniqueness
+* test: add regression test for webhook checksum uniqueness
 * build: address npm audit issues
 * build: bullmq@v4.18.3
 

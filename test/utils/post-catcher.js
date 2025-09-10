@@ -42,6 +42,8 @@ class PostCatcher extends EventEmitter {
           this.logger.log("-------------------------------------\n");
           res.statusCode = 200;
           res.send(JSON.stringify({ status: "OK" }));
+          // In-depth request info for tests that require them
+          this.emit("callback:request", { url: req.url, body: req.body });
           this.emit("callback", req.body);
         } catch (error) {
           this.logger.error("Error processing callback:", error);

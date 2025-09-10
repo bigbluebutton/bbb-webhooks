@@ -13,6 +13,7 @@ const WEBHOOKS_SUITE = process.env.WEBHOOKS_SUITE ? process.env.WEBHOOKS_SUITE =
 const ALL_TESTS = process.env.ALL_TESTS ? process.env.ALL_TESTS === 'true' : true;
 
 export default function suite({
+  application,
   redisClient,
   sharedSecret,
   testChannel,
@@ -239,6 +240,90 @@ export default function suite({
       redisClient.publish(testChannel, JSON.stringify(Helpers.rawMessage));
     })
   });
+
+  describe('checksum uniqueness', () => {
+    let catcher;
+    let createdHookId = null;
+    let originalAuthMode = null;
+    let outWebhooksImpl = null;
+
+    before((done) => {
+      Helpers.createHooksCatcher('http://127.0.0.1:3009/callback')
+        .then((c) => {
+          catcher = c;
+          // Force auth mode to checksum for this test
+          const outModules = application.moduleManager.getOutputModules();
+          const whWrapper = outModules.find((m) => m.name.includes(Object.keys(MOD_CONFIG)[0]));
+          outWebhooksImpl = whWrapper && whWrapper._module;
+          originalAuthMode = outWebhooksImpl?.webhooks?.config?.server?.auth2_0;
+
+          if (outWebhooksImpl?.webhooks?.config?.server) {
+            outWebhooksImpl.webhooks.config.server.auth2_0 = false;
+          }
+
+          return Hook.get().addSubscription({
+            callbackURL: 'http://127.0.0.1:3009/callback',
+            permanent: false,
+            getRaw: false,
+          });
+        })
+        .then(({ id, hook }) => {
+          createdHookId = id || (hook && hook.id) || null;
+          done();
+        })
+        .catch(done);
+    });
+
+    after((done) => {
+      Helpers.stopHooksCatcher(catcher);
+      try {
+        // Restore original auth mode
+        if (outWebhooksImpl?.webhooks?.config?.server && originalAuthMode !== null) {
+          outWebhooksImpl.webhooks.config.server.auth2_0 = originalAuthMode;
+        }
+      } catch (e) {
+        done(e);
+      }
+
+      if (createdHookId != null) {
+        Hook.get().removeSubscription(createdHookId)
+          .then(() => { done(); })
+          .catch(done);
+      } else {
+        done();
+      }
+    });
+
+    it('should vary checksum per different events', (done) => {
+      const checksums = [];
+
+      const collectChecksums = ({ url = '' }) => {
+        try {
+          const qIndex = url.indexOf('?');
+          const query = qIndex >= 0 ? url.substring(qIndex + 1) : '';
+          const params = new URLSearchParams(query);
+          const checksum = params.get('checksum');
+
+          if (checksum) checksums.push(checksum);
+
+          if (checksums.length === 2) {
+            if (checksums[0] !== checksums[1]) {
+              done();
+            } else {
+              done(new Error(`checksum should differ across events, but was the same: ${checksums[0]}`));
+            }
+          }
+        } catch (error) {
+          done(error);
+        }
+      };
+
+      catcher.on('callback:request', collectChecksums);
+
+      redisClient.publish(testChannel, JSON.stringify(Helpers.rawMessage));
+      redisClient.publish(testChannel, JSON.stringify(Helpers.rawMessageUserJoined));
+    });
+  });
 }
 
 export const MOD_CONFIG = {
@@ -253,4 +338,3 @@ export const MOD_CONFIG = {
     },
   },
 };
-
