@@ -139,8 +139,9 @@ export default class CallbackEmitter extends EventEmitter {
         Authorization: `Bearer ${sharedSecret}`,
       };
     } else {
+      const bodyString = data.toString();
       const checksum = Utils.shaHex(
-        `${this.callbackURL}${JSON.stringify(data)}${sharedSecret}`,
+        `${this.callbackURL}${bodyString}${sharedSecret}`,
         this._checksumAlgorithm,
       );
       // get the final callback URL, including the checksum
