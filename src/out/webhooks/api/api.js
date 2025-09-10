@@ -174,7 +174,7 @@ export default class API {
         // all the hooks that receive events from this meeting
         hooks = API.storage.get().getAllGlobalHooks();
         hooks = hooks.concat(API.storage.get().findByExternalMeetingID(meetingID));
-        hooks = Utils.sortBy(hooks, hook => hook.id);
+        hooks = hooks.sort(Utils.sortBy('id'));
       } else {
         // no meetingID, return all hooks
         hooks = API.storage.get().getAll();
