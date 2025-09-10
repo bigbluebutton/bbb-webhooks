@@ -151,6 +151,28 @@ export default class WebhooksEvent {
     return null;
   }
 
+  /**
+   * _extractIntMeetingID - Extract the internal meeting ID from mapped or raw events.
+   * @param {object} message - A mapped or raw event object.
+   * @returns {string} - The internal meeting ID.
+   * @private
+   */
+  _extractIntMeetingID(message) {
+    // Mapped events
+    return message?.data?.attributes?.meeting["internal-meeting-id"]
+      // Raw messages from BBB
+      || message?.envelope?.routing?.meetingId
+      || message?.header?.body?.meetingId
+      || message?.core?.body?.props?.meetingProp?.intId
+      || message?.core?.body?.meetingId
+      || message?.core?.header?.meetingId
+      // RAP events
+      || message?.core?.body?.internalMeetingId
+      || message?.core?.body?.recordId
+      || message?.core?.body?.meeting_id
+      || message?.payload?.meeting_id
+  }
+
   mappedEvent(messageObj, events) {
     return events.some(event => {
       if (messageObj?.header?.name === event) {
@@ -172,7 +194,7 @@ export default class WebhooksEvent {
   // Map internal to external message for meeting information
   meetingTemplate(messageObj) {
     const props = messageObj.core.body.props;
-    const meetingId = messageObj.core.body.meetingId || messageObj.core.header.meetingId;
+    const meetingId = this._extractIntMeetingID(messageObj);
     this.outputEvent = {
       data: {
         "type": "event",
@@ -270,14 +292,15 @@ export default class WebhooksEvent {
     const msgHeader = messageObj.core.header;
     const userId = msgHeader.userId;
     const extId = UserMapping.get().getExternalUserID(userId) || msgBody.extId || "";
+    const meetingId = this._extractIntMeetingID(messageObj);
     this.outputEvent = {
       data: {
         "type": "event",
         "id": this.mapInternalMessage(messageObj),
         "attributes":{
           "meeting":{
-            "internal-meeting-id": messageObj.envelope.routing.meetingId,
-            "external-meeting-id": IDMapping.get().getExternalMeetingID(messageObj.envelope.routing.meetingId)
+            "internal-meeting-id": meetingId,
+            "external-meeting-id": IDMapping.get().getExternalMeetingID(meetingId)
           },
           "user":{
             "internal-user-id": userId,
@@ -337,6 +360,7 @@ export default class WebhooksEvent {
   // Map internal to external message for chat information
   chatTemplate(messageObj) {
     const { body } = messageObj.core;
+    const meetingId = this._extractIntMeetingID(messageObj);
     // Ignore private chats
     if (body.chatId !== 'MAIN-PUBLIC-GROUP-CHAT') return;
 
@@ -346,8 +370,8 @@ export default class WebhooksEvent {
         "id": this.mapInternalMessage(messageObj),
         "attributes":{
           "meeting":{
-            "internal-meeting-id": messageObj.envelope.routing.meetingId,
-            "external-meeting-id": IDMapping.get().getExternalMeetingID(messageObj.envelope.routing.meetingId)
+            "internal-meeting-id": meetingId,
+            "external-meeting-id": IDMapping.get().getExternalMeetingID(meetingId)
           },
           "chat-message":{
             "id": body.msg.id,
@@ -369,14 +393,15 @@ export default class WebhooksEvent {
 
   rapTemplate(messageObj) {
     const data = messageObj.core.body;
+    const meetingId = this._extractIntMeetingID(messageObj);
     this.outputEvent = {
       data: {
         "type": "event",
         "id": this.mapInternalMessage(messageObj),
         "attributes": {
           "meeting": {
-            "internal-meeting-id": data.internalMeetingId,
-            "external-meeting-id": IDMapping.get().getExternalMeetingID(data.recordId)
+            "internal-meeting-id": meetingId,
+            "external-meeting-id": IDMapping.get().getExternalMeetingID(meetingId)
           },
           "record-id": data.recordId
         },
@@ -389,14 +414,15 @@ export default class WebhooksEvent {
 
   compRapTemplate(messageObj) {
     const data = messageObj.payload;
+    const meetingId = this._extractIntMeetingID(messageObj);
     this.outputEvent = {
       data: {
         "type": "event",
         "id": this.mapInternalMessage(messageObj),
         "attributes": {
           "meeting": {
-            "internal-meeting-id": data.meeting_id,
-            "external-meeting-id": data.external_meeting_id || IDMapping.get().getExternalMeetingID(data.meeting_id)
+            "internal-meeting-id": meetingId,
+            "external-meeting-id": data.external_meeting_id || IDMapping.get().getExternalMeetingID(meetingId)
           }
         },
         "event": {
@@ -408,7 +434,7 @@ export default class WebhooksEvent {
     if (this.outputEvent.data.id === "published" ||
         this.outputEvent.data.id === "unpublished" ||
         this.outputEvent.data.id === "deleted") {
-      this.outputEvent.data.attributes["record-id"] = data.meeting_id;
+      this.outputEvent.data.attributes["record-id"] = meetingId;
       this.outputEvent.data.attributes["format"] = data.format;
     } else {
       this.outputEvent.data.attributes["record-id"] = data.record_id;
@@ -454,18 +480,16 @@ export default class WebhooksEvent {
   }
 
   padTemplate(messageObj) {
-    const {
-      body,
-      header,
-    } = messageObj.core;
+    const { body } = messageObj.core;
+    const meetingId = this._extractIntMeetingID(messageObj);
     this.outputEvent = {
       data: {
         "type": "event",
         "id": this.mapInternalMessage(messageObj),
         "attributes":{
           "meeting":{
-            "internal-meeting-id": header.meetingId,
-            "external-meeting-id": IDMapping.get().getExternalMeetingID(header.meetingId)
+            "internal-meeting-id": meetingId,
+            "external-meeting-id": IDMapping.get().getExternalMeetingID(meetingId)
           },
           "pad":{
             "id": body.padId,
@@ -490,6 +514,7 @@ export default class WebhooksEvent {
     } = messageObj.core;
     const extId = UserMapping.get().getExternalUserID(header.userId) || body.extId || "";
     const pollId = body.pollId || body.poll?.id;
+    const meetingId = this._extractIntMeetingID(messageObj);
 
     this.outputEvent = {
       data: {
@@ -497,8 +522,8 @@ export default class WebhooksEvent {
         id: this.mapInternalMessage(messageObj),
         attributes:{
           meeting:{
-            "internal-meeting-id": messageObj.envelope.routing.meetingId,
-            "external-meeting-id": IDMapping.get().getExternalMeetingID(messageObj.envelope.routing.meetingId)
+            "internal-meeting-id": meetingId,
+            "external-meeting-id": IDMapping.get().getExternalMeetingID(meetingId)
           },
           user:{
             "internal-user-id": header.userId,
