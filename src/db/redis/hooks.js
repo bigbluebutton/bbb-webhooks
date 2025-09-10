@@ -73,7 +73,7 @@ class HookCompartment extends StorageCompartmentKV {
   }
 
   isGlobal(item) {
-    return item?.externalMeetingID == null;
+    return item?.payload?.externalMeetingID == null;
   }
 
   getExternalMeetingID(id) {
@@ -95,7 +95,7 @@ class HookCompartment extends StorageCompartmentKV {
   }) {
     const payload = this._buildPayload({
       callbackURL,
-      externalMeetingID: meetingID,
+      meetingID,
       eventID: eventID?.toLowerCase().split(','),
       permanent,
       getRaw,
