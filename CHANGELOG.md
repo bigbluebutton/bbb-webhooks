@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+### UNRELEASED
+
+* build: address npm audit issues
+
 ### v3.3.1
 
 * fix: missing userdata in user-joined event (BBB 2.7 and 3.0)
