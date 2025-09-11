@@ -5,6 +5,11 @@ import UserMapping from '../db/redis/user-mapping.js';
 const logger = newLogger('webhook-event');
 
 export default class WebhooksEvent {
+  // List of system-defined user IDs that should be ignored. This is a BBB thing.
+  static USER_ID_IGNORELIST = [
+    "not-used"
+  ];
+
   static OUTPUT_EVENTS = [
     "meeting-created",
     "meeting-ended",
@@ -173,6 +178,27 @@ export default class WebhooksEvent {
       || message?.payload?.meeting_id
   }
 
+  /**
+   * _extractIntUserID - Extract the internal user ID from mapped or raw events.
+   * @param {object} message - A mapped or raw event object.
+   * @returns {string} - The internal user ID.
+   * @private
+   */
+  _extractIntUserID(message) {
+    // Check if the user ID is in the ignore list - return null if it is,
+    // otherwise return the user ID
+    const safeUserId = (uid) => {
+      if (!uid || WebhooksEvent.USER_ID_IGNORELIST.includes(uid)) return null;
+      return uid;
+    }
+
+    // Mapped events
+    return safeUserId(message?.data?.attributes?.user["internal-user-id"])
+      // Raw messages from BBB
+      || safeUserId(message?.core?.header?.userId)
+      || safeUserId(message?.core?.body?.userId)
+  }
+
   mappedEvent(messageObj, events) {
     return events.some(event => {
       if (messageObj?.header?.name === event) {
@@ -245,23 +271,39 @@ export default class WebhooksEvent {
         break;
 
       case "ScreenshareRtmpBroadcastStartedEvtMsg": {
-        const presenter = UserMapping.get().getMeetingPresenter(meetingId);
+        let userId = this._extractIntUserID(messageObj);
+
+        if (!userId) {
+          // User ID info is pulled from the presenter mapping because the
+          // RPC does not carry user ID info in BBB < 3.0.11
+          const presenter = UserMapping.get().getMeetingPresenter(meetingId);
+          userId = presenter.internalUserID;
+        }
+
         this.outputEvent.data.attributes = {
           ...this.outputEvent.data.attributes,
-          user:{
-            "internal-user-id": presenter.internalUserID,
-            "external-user-id": presenter.externalUserID,
+          user: {
+            "internal-user-id": userId,
+            "external-user-id": UserMapping.get().getExternalUserID(userId),
           }
         };
         break;
       }
       case "ScreenshareRtmpBroadcastStoppedEvtMsg": {
-        const owner = UserMapping.get().getMeetingScreenShareOwner(meetingId);
+        let userId = this._extractIntUserID(messageObj);
+
+        if (!userId) {
+          // User ID info is pulled from the owner mapping because the
+          // RPC does not carry user ID info in BBB < 3.0.11
+          const owner = UserMapping.get().getMeetingScreenShareOwner(meetingId);
+          userId = owner.internalUserID;
+        }
+
         this.outputEvent.data.attributes = {
           ...this.outputEvent.data.attributes,
           user:{
-            "internal-user-id": owner.internalUserID,
-            "external-user-id": owner.externalUserID,
+            "internal-user-id": userId,
+            "external-user-id": UserMapping.get().getExternalUserID(userId),
           }
         };
 
@@ -289,8 +331,7 @@ export default class WebhooksEvent {
   // Map internal to external message for user information
   userTemplate(messageObj) {
     const msgBody = messageObj.core.body;
-    const msgHeader = messageObj.core.header;
-    const userId = msgHeader.userId;
+    const userId = this._extractIntUserID(messageObj);
     const extId = UserMapping.get().getExternalUserID(userId) || msgBody.extId || "";
     const meetingId = this._extractIntMeetingID(messageObj);
     this.outputEvent = {
@@ -360,6 +401,7 @@ export default class WebhooksEvent {
   // Map internal to external message for chat information
   chatTemplate(messageObj) {
     const { body } = messageObj.core;
+    const userId = this._extractIntUserID(messageObj);
     const meetingId = this._extractIntMeetingID(messageObj);
     // Ignore private chats
     if (body.chatId !== 'MAIN-PUBLIC-GROUP-CHAT') return;
@@ -377,7 +419,8 @@ export default class WebhooksEvent {
             "id": body.msg.id,
             "message": body.msg.message,
             "sender":{
-              "internal-user-id": body.msg.sender.id,
+              "internal-user-id": userId,
+              "external-user-id": UserMapping.get().getExternalUserID(userId),
               "name": body.msg.sender.name,
               "time": body.msg.timestamp
             }
@@ -508,11 +551,9 @@ export default class WebhooksEvent {
   }
 
   pollTemplate(messageObj) {
-    const {
-      body,
-      header,
-    } = messageObj.core;
-    const extId = UserMapping.get().getExternalUserID(header.userId) || body.extId || "";
+    const { body } = messageObj.core;
+    const userId = this._extractIntUserID(messageObj);
+    const extId = UserMapping.get().getExternalUserID(userId) || body.extId || "";
     const pollId = body.pollId || body.poll?.id;
     const meetingId = this._extractIntMeetingID(messageObj);
 
@@ -526,7 +567,7 @@ export default class WebhooksEvent {
             "external-meeting-id": IDMapping.get().getExternalMeetingID(meetingId)
           },
           user:{
-            "internal-user-id": header.userId,
+            "internal-user-id": userId,
             "external-user-id": extId,
           },
           poll: {

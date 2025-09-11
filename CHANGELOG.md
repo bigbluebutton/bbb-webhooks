@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 * fix(webhooks): guarantee checksum uniqueness
 * fix(webhooks): meetingID not respected for scoped hooks
 * fix(webhooks): incorrectly sorted hooks in API responses
+* fix: external user ID missing from chat event
 * fix: internal/external-meeting-id missing from some events
 * test: add regression test for webhook checksum uniqueness
 * test: add regression tests for scoped hooks
