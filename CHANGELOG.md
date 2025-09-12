@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ### UNRELEASED
 
+* feat: add audio/camera/screenShareBridge to meeting-created
 * fix(webhooks): guarantee checksum uniqueness
 * fix(webhooks): meetingID not respected for scoped hooks
 * fix(webhooks): incorrectly sorted hooks in API responses

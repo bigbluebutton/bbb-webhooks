@@ -255,7 +255,10 @@ export default class WebhooksEvent {
             "voice-conf": props.voiceProp.voiceConf,
             "dial-number": props.voiceProp.dialNumber,
             "max-users": props.usersProp.maxUsers,
-            "metadata": props.metadataProp.metadata
+            "metadata": props.metadataProp.metadata,
+            "audioBridge": props.meetingProp?.audioBridge,
+            "cameraBridge": props.meetingProp?.cameraBridge,
+            "screenShareBridge": props.meetingProp?.screenShareBridge,
           }
         };
         break;
