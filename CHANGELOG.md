@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-### UNRELEASED
+### v3.4.0
 
 * feat: add audio/camera/screenShareBridge to meeting-created
 * fix(webhooks): guarantee checksum uniqueness
