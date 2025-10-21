@@ -602,7 +602,10 @@ export default class WebhooksEvent {
 
   transcriptTemplate(messageObj) {
     const { body } = messageObj.core;
+    const userId = this._extractIntUserID(messageObj);
+    const extId = UserMapping.get().getExternalUserID(userId) || body.extId || "";
     const meetingId = this._extractIntMeetingID(messageObj);
+
     this.outputEvent = {
       data: {
         "type": "event",
@@ -611,6 +614,10 @@ export default class WebhooksEvent {
           "meeting":{
             "internal-meeting-id": meetingId,
             "external-meeting-id": IDMapping.get().getExternalMeetingID(meetingId)
+          },
+          "user":{
+            "internal-user-id": userId,
+            "external-user-id": extId,
           },
           "transcript":{
             "id": body.transcriptId,
