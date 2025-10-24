@@ -352,6 +352,10 @@ export default class WebhooksEvent {
             "name": msgBody.name,
             "role": msgBody.role,
             "presenter": msgBody.presenter,
+            "ip-address": msgBody.ipAddress,
+            "user-agent": msgBody.userAgent,
+            "referer": msgBody.referer,
+            "session-token": msgBody.sessionToken,
             // All variations of user data nomenclature in UserJoinedMeetingEvtMsg
             // as they keep changing the field name
             "userdata": msgBody?.userdata || msgBody?.userMetadata || msgBody?.userCustomData,
