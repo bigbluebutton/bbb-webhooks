@@ -32,6 +32,7 @@ export default class WebhooksEvent {
     "user-presenter-unassigned",
     "user-emoji-changed",
     "user-raise-hand-changed",
+    "transcript-updated",
     "chat-group-message-sent",
     "rap-published",
     "rap-unpublished",
@@ -113,6 +114,9 @@ export default class WebhooksEvent {
       "PollStartedEvtMsg",
       "UserRespondedToPollRespMsg",
     ],
+    TRANSCRIPT_EVENTS: [
+      "TranscriptUpdatedEvtMsg"
+    ]
   }
 
   constructor(inputEvent) {
@@ -137,6 +141,8 @@ export default class WebhooksEvent {
         this.padTemplate(this.inputEvent);
       } else if (this.mappedEvent(this.inputEvent, WebhooksEvent.RAW.POLL_EVENTS)) {
         this.pollTemplate(this.inputEvent);
+      } else if (this.mappedEvent(this.inputEvent, WebhooksEvent.RAW.TRANSCRIPT_EVENTS)) {
+        this.transcriptTemplate(this.inputEvent);
       } else if (this.mappedEvent(this.inputEvent, WebhooksEvent.OUTPUT_EVENTS)) {
         // Check if input is already a mapped event and return it
         this.outputEvent = this.inputEvent;
@@ -598,6 +604,39 @@ export default class WebhooksEvent {
     }
   }
 
+  transcriptTemplate(messageObj) {
+    const { body } = messageObj.core;
+    const userId = this._extractIntUserID(messageObj);
+    const extId = UserMapping.get().getExternalUserID(userId) || body.extId || "";
+    const meetingId = this._extractIntMeetingID(messageObj);
+
+    this.outputEvent = {
+      data: {
+        "type": "event",
+        "id": this.mapInternalMessage(messageObj),
+        "attributes":{
+          "meeting":{
+            "internal-meeting-id": meetingId,
+            "external-meeting-id": IDMapping.get().getExternalMeetingID(meetingId)
+          },
+          "user":{
+            "internal-user-id": userId,
+            "external-user-id": extId,
+          },
+          "transcript":{
+            "id": body.transcriptId,
+            "transcript": body.transcript,
+            "locale": body.locale,
+            "final": body.result
+          }
+        },
+        "event":{
+          "ts": Date.now()
+        }
+      }
+    };
+  }
+
   mapInternalMessage(message) {
     const name = message?.envelope?.name || message?.header?.name;
 
@@ -620,6 +659,7 @@ export default class WebhooksEvent {
       case "UserEmojiChangedEvtMsg":
       case "UserReactionEmojiChangedEvtMsg": return 'user-emoji-changed';
       case "UserRaiseHandChangedEvtMsg": return "user-raise-hand-changed";
+      case "TranscriptUpdatedEvtMsg": return "transcript-updated";
       case "GroupChatMessageBroadcastEvtMsg": return "chat-group-message-sent";
       case "PublishedRecordingSysMsg": return "rap-published";
       case "UnpublishedRecordingSysMsg": return "rap-unpublished";
