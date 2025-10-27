@@ -2,8 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
-### UNRELEASED
+### v3.5.0
 
+* feat: emit transcript-updated event
+* feat: add ip address, user agent, referer and session token if available in the UserJoined event
 * build(deps): pino@9.14.0
 * build(deps): pino-pretty@13.1.2
 
