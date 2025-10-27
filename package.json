@@ -41,7 +41,7 @@
     "jsdoc": "^4.0.2",
     "mocha": "^10.7.0",
     "nodemon": "^3.1.4",
-    "pino-pretty": "^10.2.3",
+    "pino-pretty": "^13.1.2",
     "sinon": "^19.0.2",
     "supertest": "^3.4.2"
   }

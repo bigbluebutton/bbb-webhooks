@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ### UNRELEASED
 
 * build(deps): pino@9.14.0
+* build(deps): pino-pretty@13.1.2
 
 ### v3.4.0
 
