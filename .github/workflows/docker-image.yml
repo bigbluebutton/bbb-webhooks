@@ -28,7 +28,11 @@ jobs:
     needs:
       - hadolint
       - tests
-
+    strategy:
+      matrix:
+        platform:
+          - linux/amd64
+          - linux/arm64
     steps:
       - name: Checkout
         uses: actions/checkout@v4
