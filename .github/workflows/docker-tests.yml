@@ -2,6 +2,13 @@ name: Run tests
 on:
   workflow_dispatch:
   workflow_call:
+  push:
+    branches:
+      - develop
+      - main
+    tags:
+      - '*'
+  pull_request:
 permissions:
   contents: read
 jobs:

@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+### UNRELEASED
+
+* fix: re-enable test and hadolint workflows
+
 ### v3.6.0
 
 * feat: add docker matrix build to support arm64
