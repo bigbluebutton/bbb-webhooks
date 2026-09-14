@@ -46,6 +46,7 @@ export default class CallbackEmitter extends EventEmitter {
       permanentIntervalReset,
       logger = console,
       checksumAlgorithm,
+      getRaw = false,
     } = {},
   ) {
     super();
@@ -79,6 +80,7 @@ export default class CallbackEmitter extends EventEmitter {
     ];
     this._permanentIntervalReset = permanentIntervalReset || 60000;
     this._checksumAlgorithm = checksumAlgorithm;
+    this._getRaw = getRaw;
   }
 
   _scheduleNext(timeout) {
@@ -163,7 +165,11 @@ export default class CallbackEmitter extends EventEmitter {
       controller.abort();
     }, timeout);
     requestOptions.signal = controller.signal;
-    const stringifiedEvent = simplifiedEvent(this.event);
+    // Raw events carry no mapped id/timestamp, so simplifying them yields an
+    // all-undefined string: log whichever representation the hook subscribed to.
+    const loggedEvent = this._getRaw
+      ? { event: {}, rawEvent: this.event }
+      : { event: simplifiedEvent(this.event), rawEvent: {} };
 
     try {
       const response = await fetch(callbackURL, requestOptions);
@@ -177,14 +183,14 @@ export default class CallbackEmitter extends EventEmitter {
       }
 
       this.logger.info(`successful callback call to: [${callbackURL}]`, {
-        event: stringifiedEvent,
+        ...loggedEvent,
         status: response?.status,
         statusText: response?.statusText,
       });
     } catch (error) {
       if (error.code == null) error.code = 'unknown';
       this.logger.warn(`error in the callback call to: [${callbackURL}]`, {
-        event: stringifiedEvent,
+        ...loggedEvent,
         callbackURL,
         errorMessage: error?.message,
         errorName: error?.name,
