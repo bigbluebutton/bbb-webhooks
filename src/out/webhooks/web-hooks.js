@@ -182,6 +182,7 @@ class WebHooks {
           retryIntervals: this.config.retryIntervals,
           checksumAlgorithm: this.config.hookChecksumAlgorithm,
           logger: this.logger,
+          getRaw: hook.payload.getRaw,
         }
       );
 
