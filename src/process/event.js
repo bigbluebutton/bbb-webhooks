@@ -10,6 +10,11 @@ export default class WebhooksEvent {
     "not-used"
   ];
 
+  // Messages whose header.userId is the requester, not the affected user
+  static BODY_USER_ID_EVENTS = [
+    "UserRoleChangedEvtMsg",
+  ];
+
   static OUTPUT_EVENTS = [
     "meeting-created",
     "meeting-ended",
@@ -32,6 +37,7 @@ export default class WebhooksEvent {
     "user-presenter-unassigned",
     "user-emoji-changed",
     "user-raise-hand-changed",
+    "user-role-changed",
     "transcript-updated",
     "chat-group-message-sent",
     "rap-published",
@@ -79,6 +85,7 @@ export default class WebhooksEvent {
       "UserBroadcastCamStoppedEvtMsg",
       "UserEmojiChangedEvtMsg",
       "UserReactionEmojiChangedEvtMsg",
+      "UserRoleChangedEvtMsg",
       // 2.7+
       "UserRaiseHandChangedEvtMsg",
     ],
@@ -200,6 +207,10 @@ export default class WebhooksEvent {
     const safeUserId = (uid) => {
       if (!uid || WebhooksEvent.USER_ID_IGNORELIST.includes(uid)) return null;
       return uid;
+    }
+
+    if (WebhooksEvent.BODY_USER_ID_EVENTS.includes(message?.core?.header?.name)) {
+      return safeUserId(message?.core?.body?.userId);
     }
 
     // Mapped events
@@ -402,6 +413,10 @@ export default class WebhooksEvent {
       }
       case "user-raise-hand-changed": {
         this.outputEvent.data["attributes"]["user"]["raise-hand"] = msgBody.raiseHand;
+        break;
+      }
+      case "user-role-changed": {
+        this.outputEvent.data["attributes"]["user"]["changed-by"] = msgBody.changedBy;
         break;
       }
       case "user-joined":
@@ -669,6 +684,7 @@ export default class WebhooksEvent {
       case "UserEmojiChangedEvtMsg":
       case "UserReactionEmojiChangedEvtMsg": return 'user-emoji-changed';
       case "UserRaiseHandChangedEvtMsg": return "user-raise-hand-changed";
+      case "UserRoleChangedEvtMsg": return "user-role-changed";
       case "TranscriptUpdatedEvtMsg": return "transcript-updated";
       case "GroupChatMessageBroadcastEvtMsg": return "chat-group-message-sent";
       case "PublishedRecordingSysMsg": return "rap-published";

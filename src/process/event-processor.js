@@ -337,6 +337,20 @@ export default class EventProcessor {
           case "user-emoji-changed":
             this._handleUserEmojiChangedEvent(outputEvent, rawEvent);
             break;
+          case "user-role-changed":
+            UserMapping.get().updateWithField(
+              'internalUserID',
+              outputEvent.data.attributes.user["internal-user-id"], {
+                user: {
+                  role: outputEvent.data.attributes.user.role,
+                },
+              }
+            ).catch((error) => {
+              Logger.error('error updating user mapping', error);
+            }).finally(() =>  {
+              this._notifyOutputModules(outputEvent, rawEvent);
+            });
+            break;
           case "meeting-ended":
             this._handleMeetingEndedEvent(outputEvent).finally(() => {
               this._notifyOutputModules(outputEvent, rawEvent);
