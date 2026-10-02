@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+### UNRELEASED
+
+* feat(events): add support for user-role-changed
+
 ### v3.7.0
 
 * feat: handle post_events_[started|ended]

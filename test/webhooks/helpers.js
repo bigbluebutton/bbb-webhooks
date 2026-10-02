@@ -232,5 +232,28 @@ helpers.rawMessagePostEventsEnded = {
     external_meeting_id: 'a77f2e5495fb613ec3fe8d86f933f523d73115aaf4c72653341a198f9bafc77a'
   }
 };
+helpers.rawMessageUserRoleChanged = {
+  envelope: {
+    name: 'UserRoleChangedEvtMsg',
+    routing: {
+      msgType: 'BROADCAST_TO_MEETING',
+      meetingId: '8043c8452ae9830aac14c517adff3839dbd9228f-1698771157700',
+      userId: 'w_xfsb9gxtlfom'
+    },
+    timestamp: 1698771264638
+  },
+  core: {
+    header: {
+      name: 'UserRoleChangedEvtMsg',
+      meetingId: '8043c8452ae9830aac14c517adff3839dbd9228f-1698771157700',
+      userId: 'w_moderator0001'
+    },
+    body: {
+      userId: 'w_xfsb9gxtlfom',
+      role: 'VIEWER',
+      changedBy: 'w_moderator0001'
+    }
+  }
+};
 
 export default helpers;
