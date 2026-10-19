@@ -76,6 +76,7 @@ Follow the commands below starting within the `bigbluebutton/bbb-webhooks` direc
     - `sudo cp config/default.example.yml config/default.yml`
     - Update the `serverDomain` and `sharedSecret` values to match your BBB server configuration:
         - `sudo nano config/default.yml`
+    - If `BBB_URL` and `BBB_SECRET` are set in `/etc/bigbluebutton/bigbluebutton.env`, they take precedence over `serverDomain` (host of `BBB_URL`) and `sharedSecret`.
 
 9. Start the bbb-webhooks service:
     - `sudo systemctl bbb-webhooks restart`
