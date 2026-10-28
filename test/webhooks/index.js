@@ -5,6 +5,7 @@ import sinon from 'sinon';
 import Utils from '../../src/out/webhooks/utils.js';
 import responses from '../../src/out/webhooks/api/responses.js';
 import Hook from '../../src/db/redis/hooks.js';
+import UserMapping from '../../src/db/redis/user-mapping.js';
 import Helpers from './helpers.js'
 import HooksPostCatcher from './hooks-post-catcher.js';
 
@@ -294,6 +295,106 @@ export default function suite({
       });
 
       redisClient.publish(testChannel, JSON.stringify(Helpers.rawMessagePostEventsEnded));
+    })
+  });
+
+  describe('/POST mapped user-role-changed message', () => {
+    let catcher;
+
+    before((done) => {
+      catcher = new HooksPostCatcher(WH_CONFIG.permanentURLs[1].url);
+      const hooks = Hook.get().getAllGlobalHooks();
+      const hook = hooks[0];
+      Helpers.flushredis(hook);
+      catcher.start().then(() => {
+        done();
+      });
+    });
+
+    // Flushing Redis leaves the in-memory user mapping cache intact
+    afterEach(() => {
+      const { changedBy } = Helpers.rawMessageUserRoleChanged.core.body;
+      return UserMapping.get().removeMapping(changedBy);
+    });
+
+    after((done) => {
+      const hooks = Hook.get().getAllGlobalHooks();
+      const hook = hooks[0];
+      Helpers.flushredis(hook);
+      catcher.stop();
+      done();
+    })
+
+    it('should report the affected user and update its stored role', (done) => {
+      const { body: roleChange } = Helpers.rawMessageUserRoleChanged.core;
+      const onCallback = (body) => {
+        try {
+          const parsed = JSON.parse(body?.event);
+          const { id, attributes } = parsed[0].data || {};
+          // user-joined is only delivered after its user mapping is stored
+          if (id === 'user-joined') {
+            redisClient.publish(testChannel, JSON.stringify(Helpers.rawMessageUserRoleChanged));
+            return;
+          }
+
+          catcher.removeListener('callback', onCallback);
+          const storedUser = UserMapping.get().getUser(roleChange.userId);
+          if (id === 'user-role-changed'
+            && attributes.user['internal-user-id'] === roleChange.userId
+            && attributes.user.role === roleChange.role
+            && attributes.user['changed-by']?.['internal-user-id'] === roleChange.changedBy
+            && attributes.user['changed-by']?.['external-user-id'] === ''
+            && storedUser?.role === roleChange.role) {
+            done();
+          } else {
+            done(new Error("incorrectly mapped user-role-changed message: " + body?.event));
+          }
+        } catch (error) {
+          done(error);
+        }
+      };
+
+      catcher.on('callback', onCallback);
+      redisClient.publish(testChannel, JSON.stringify(Helpers.rawMessageUserJoined));
+    })
+
+    it('should resolve the external ID of the user who changed the role', (done) => {
+      const { body: roleChange } = Helpers.rawMessageUserRoleChanged.core;
+      // extId differs from intId, so echoing the internal ID fails the test
+      const changerExtId = 'ext-moderator-0001';
+      const changerJoined = JSON.parse(JSON.stringify(Helpers.rawMessageUserJoined));
+      changerJoined.envelope.routing.userId = roleChange.changedBy;
+      changerJoined.core.header.userId = roleChange.changedBy;
+      changerJoined.core.body.intId = roleChange.changedBy;
+      changerJoined.core.body.extId = changerExtId;
+
+      const onCallback = (body) => {
+        try {
+          const { id, attributes } = JSON.parse(body?.event)[0].data || {};
+          if (id === 'user-joined') {
+            const next = attributes.user['internal-user-id'] === roleChange.changedBy
+              ? Helpers.rawMessageUserJoined
+              : Helpers.rawMessageUserRoleChanged;
+            redisClient.publish(testChannel, JSON.stringify(next));
+            return;
+          }
+
+          catcher.removeListener('callback', onCallback);
+          const changedBy = attributes?.user?.['changed-by'];
+          if (id === 'user-role-changed'
+            && changedBy?.['internal-user-id'] === roleChange.changedBy
+            && changedBy?.['external-user-id'] === changerExtId) {
+            done();
+          } else {
+            done(new Error("changed-by not resolved: " + body?.event));
+          }
+        } catch (error) {
+          done(error);
+        }
+      };
+
+      catcher.on('callback', onCallback);
+      redisClient.publish(testChannel, JSON.stringify(changerJoined));
     })
   });
 
