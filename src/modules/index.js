@@ -20,8 +20,8 @@ const REDIS_CONF = {
 REDIS_CONF.REDIS_URL = `redis://${REDIS_CONF.password ? `:${REDIS_CONF.password}@` : ''}${REDIS_CONF.host}:${REDIS_CONF.port}`;
 const BASE_CONFIGURATION = Object.freeze({
   server: {
-    domain: config.get('bbb.serverDomain'),
-    secret: config.get('bbb.sharedSecret'),
+    domain: process.env.BBB_URL ? new URL(process.env.BBB_URL).host : config.get('bbb.serverDomain'),
+    secret: process.env.BBB_SECRET || config.get('bbb.sharedSecret'),
     auth2_0: config.get('bbb.auth2_0'),
   },
   redis: {
