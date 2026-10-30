@@ -2,9 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-### UNRELEASED
+### v3.8.0
 
 * feat(events): add support for user-role-changed
+* fix(webhooks): log the event representation the hook subscribed to
+* build(deps): express@5.3.0
+* build(deps): npm audit fix
+* build(deps): body-parser@2.4.0 (dev)
 
 ### v3.7.0
 
