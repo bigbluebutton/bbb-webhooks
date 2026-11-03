@@ -14,6 +14,7 @@ prometheus:
   collectDefaultMetrics: false
 
 # Shared secret of your BigBlueButton server.
+# BBB_URL (its host) and BBB_SECRET from /etc/bigbluebutton/bigbluebutton.env take precedence over serverDomain and sharedSecret.
 bbb:
   serverDomain: myserver.com
   sharedSecret: mysharedsecret
